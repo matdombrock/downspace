@@ -32,9 +32,45 @@
     onSetTheme,
   }: Props = $props();
 
-  const rootDirs = $derived(tree.filter(n => n.type === 'directory'));
-  const rootNotes = $derived(tree.filter(n => n.type === 'note'));
-  const rootFiles = $derived(tree.filter(n => n.type === 'file'));
+  let sortMode = $state<'chrono' | 'alpha'>(
+    (localStorage.getItem('downspace-sort') as 'chrono' | 'alpha' | null) ?? 'chrono'
+  );
+  let collapseKey = $state(0);
+
+  function toggleSort() {
+    const next = sortMode === 'chrono' ? 'alpha' : 'chrono';
+    sortMode = next;
+    localStorage.setItem('downspace-sort', next);
+  }
+
+  function collapseAll() {
+    collapseKey++;
+  }
+
+  function sortNodes(nodes: TreeNode[]): TreeNode[] {
+    const sorted = [...nodes].sort((a, b) => {
+      if (a.type !== b.type) {
+        const order = { directory: 0, note: 1, file: 2 } as const;
+        return order[a.type] - order[b.type];
+      }
+      if (sortMode === 'chrono') {
+        const ma = a.modified ?? '';
+        const mb = b.modified ?? '';
+        return mb.localeCompare(ma);
+      }
+      return a.name.localeCompare(b.name);
+    });
+    return sorted.map(node => ({
+      ...node,
+      children: node.children ? sortNodes(node.children) : undefined,
+    }));
+  }
+
+  const sortedTree = $derived(sortNodes(tree));
+
+  const rootDirs = $derived(sortedTree.filter(n => n.type === 'directory'));
+  const rootNotes = $derived(sortedTree.filter(n => n.type === 'note'));
+  const rootFiles = $derived(sortedTree.filter(n => n.type === 'file'));
 </script>
 
 <div class="sidebar-content">
@@ -53,35 +89,19 @@
   {#if showSettings}
     <div class="settings-panel">
       <div class="settings-title">Theme</div>
-      <button
-        class="theme-option"
-        class:active={theme === 'light'}
-        onclick={() => onSetTheme('light')}
-      >
+      <button class="theme-option" class:active={theme === 'light'} onclick={() => onSetTheme('light')}>
         <i class="fas fa-sun"></i>
         <span>Light</span>
       </button>
-      <button
-        class="theme-option"
-        class:active={theme === 'dark'}
-        onclick={() => onSetTheme('dark')}
-      >
+      <button class="theme-option" class:active={theme === 'dark'} onclick={() => onSetTheme('dark')}>
         <i class="fas fa-moon"></i>
         <span>Dark</span>
       </button>
-      <button
-        class="theme-option"
-        class:active={theme === 'dark-modern'}
-        onclick={() => onSetTheme('dark-modern')}
-      >
+      <button class="theme-option" class:active={theme === 'dark-modern'} onclick={() => onSetTheme('dark-modern')}>
         <i class="fas fa-moon"></i>
         <span>Dark Modern</span>
       </button>
-      <button
-        class="theme-option"
-        class:active={theme === 'dark-oled'}
-        onclick={() => onSetTheme('dark-oled')}
-      >
+      <button class="theme-option" class:active={theme === 'dark-oled'} onclick={() => onSetTheme('dark-oled')}>
         <i class="fas fa-circle"></i>
         <span>Dark OLED</span>
       </button>
@@ -91,6 +111,7 @@
       {#each rootDirs as dir (dir.path)}
         <TreeDir
           {dir}
+          {collapseKey}
           {selectedNotePath}
           {onSelectNote}
           {onNewNote}
@@ -101,21 +122,14 @@
       {/each}
 
       {#each rootNotes as note (note.path)}
-        <button
-          class="tree-note"
-          class:active={selectedNotePath === note.path}
-          onclick={() => onSelectNote(note.path)}
-        >
+        <button class="tree-note" class:active={selectedNotePath === note.path} onclick={() => onSelectNote(note.path)}>
           <span class="tree-dot"><i class="fas fa-file-lines"></i></span>
           <span class="tree-label">{note.name}</span>
         </button>
       {/each}
 
       {#each rootFiles as file (file.path)}
-        <button
-          class="tree-note"
-          onclick={() => window.open('/f/' + file.path, '_blank')}
-        >
+        <button class="tree-note" onclick={() => window.open('/f/' + file.path, '_blank')}>
           <span class="tree-dot"><i class="fas fa-file"></i></span>
           <span class="tree-label">{file.name}</span>
         </button>
@@ -128,6 +142,16 @@
   {/if}
 
   <div class="sidebar-footer">
+    <button class="btn-icon" title={sortMode === 'chrono' ? 'Sorted by date' : 'Sorted A-Z'} onclick={toggleSort}>
+      {#if sortMode === 'chrono'}
+        <i class="fas fa-clock"></i>
+      {:else}
+        <i class="fas fa-sort-alpha-down"></i>
+      {/if}
+    </button>
+    <button class="btn-icon" title="Collapse all" onclick={collapseAll}>
+      <i class="fas fa-compress-alt"></i>
+    </button>
     <button class="btn-icon settings-btn" title="Settings" onclick={onToggleSettings}>
       <i class="fas fa-gear"></i>
     </button>
@@ -214,8 +238,6 @@
     font-size: 13px;
   }
 
-  /* ─── Settings panel ──────────────────────────────────────────────────── */
-
   .settings-panel {
     flex: 1;
     padding: 12px;
@@ -263,12 +285,11 @@
     color: var(--accent);
   }
 
-  /* ─── Footer ──────────────────────────────────────────────────────────── */
-
   .sidebar-footer {
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 8px;
     padding: 8px;
     border-top: 1px solid var(--border);
   }

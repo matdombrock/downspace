@@ -4,6 +4,7 @@
 
   interface Props {
     dir: TreeNode;
+    collapseKey: number;
     selectedNotePath: string | null;
     onSelectNote: (path: string) => void;
     onNewNote: (dirPath: string) => void;
@@ -14,6 +15,7 @@
 
   let {
     dir,
+    collapseKey,
     selectedNotePath,
     onSelectNote,
     onNewNote,
@@ -23,6 +25,11 @@
   }: Props = $props();
 
   let expanded = $state(false);
+
+  // Collapse all directories when collapseKey changes
+  $effect(() => {
+    if (collapseKey) expanded = false;
+  });
 
   function toggle() {
     expanded = !expanded;
@@ -56,6 +63,7 @@
       {#each subdirs as subdir (subdir.path)}
         <Self
           dir={subdir}
+          {collapseKey}
           {selectedNotePath}
           {onSelectNote}
           {onNewNote}
