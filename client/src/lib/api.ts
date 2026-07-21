@@ -65,3 +65,34 @@ export async function moveDirectory(path: string, newPath: string): Promise<void
 export async function searchNotes(q: string, mode: 'fulltext' | 'filename' = 'filename'): Promise<SearchResult[]> {
   return request<SearchResult[]>(`/search?q=${encodeURIComponent(q)}&mode=${mode}`);
 }
+
+export async function deleteFile(path: string): Promise<void> {
+  await request(`/file?path=${encodeURIComponent(path)}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function moveFile(path: string, newPath: string): Promise<void> {
+  await request('/file/move', {
+    method: 'POST',
+    body: JSON.stringify({ path, newPath }),
+  });
+}
+
+export async function uploadFiles(files: FileList | File[], dir: string = ''): Promise<string[]> {
+  const formData = new FormData();
+  for (const file of files) {
+    formData.append('files', file);
+  }
+  const params = dir ? `?dir=${encodeURIComponent(dir)}` : '';
+  const res = await fetch(`/api/upload${params}`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(body.error || `Upload failed (${res.status})`);
+  }
+  const data = await res.json();
+  return data.files;
+}

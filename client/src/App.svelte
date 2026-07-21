@@ -5,7 +5,7 @@
   import NoteEditor from './lib/NoteEditor.svelte';
   import ThemeToggle from './lib/ThemeToggle.svelte';
   import type { TreeNode, Note } from './lib/types';
-  import { fetchTree, fetchNote, saveNote, deleteNote as apiDeleteNote, createDirectory, deleteDirectory as apiDeleteDirectory, moveNote, moveDirectory } from './lib/api';
+  import { fetchTree, fetchNote, saveNote, deleteNote as apiDeleteNote, createDirectory, deleteDirectory as apiDeleteDirectory, moveNote, moveDirectory, deleteFile as apiDeleteFile, moveFile as apiMoveFile } from './lib/api';
   import { loadSettings, saveSettings } from './lib/settings';
   import type { Theme } from './lib/settings';
   import themes, { applyThemeById } from './lib/themes';
@@ -267,6 +267,63 @@
       .catch((e: any) => { error = e.message; });
   }
 
+  function handleDeleteFile(filePath: string) {
+    const name = filePath.split('/').pop() || filePath;
+    if (!confirm(`Delete "${name}"?`)) return;
+    error = null;
+    apiDeleteFile(filePath)
+      .then(() => loadTree())
+      .catch((e: any) => { error = e.message; });
+  }
+
+  function handleRenameFile(filePath: string) {
+    const oldName = filePath.split('/').pop() || '';
+    const dir = filePath.includes('/') ? filePath.slice(0, filePath.lastIndexOf('/')) : '';
+    const newName = prompt('New file name:', oldName);
+    if (!newName || !newName.trim() || newName.trim() === oldName) return;
+    const newPath = dir ? `${dir}/${newName.trim()}` : newName.trim();
+    error = null;
+    apiMoveFile(filePath, newPath)
+      .then(() => loadTree())
+      .catch((e: any) => { error = e.message; });
+  }
+
+  function handleDeleteNoteInline(notePath: string) {
+    const name = notePath.split('/').pop()?.replace(/\.md$/, '') || notePath;
+    if (!confirm(`Delete "${name}"?`)) return;
+    error = null;
+    apiDeleteNote(notePath)
+      .then(() => {
+        if (selectedNote?.path === notePath) {
+          selectedNote = null;
+          editMode = false;
+          window.history.replaceState({ note: '' }, '', '/');
+        }
+        return loadTree();
+      })
+      .catch((e: any) => { error = e.message; });
+  }
+
+  function handleRenameNoteInline(notePath: string) {
+    const name = notePath.split('/').pop()?.replace(/\.md$/, '') || '';
+    const dir = notePath.includes('/') ? notePath.slice(0, notePath.lastIndexOf('/')) : '';
+    const newName = prompt('New name (without .md):', name);
+    if (!newName || !newName.trim() || newName.trim() === name) return;
+    const newPath = dir ? `${dir}/${newName.trim()}.md` : `${newName.trim()}.md`;
+    error = null;
+    moveNote(notePath, newPath)
+      .then(() => {
+        if (selectedNote?.path === notePath) {
+          return fetchNote(newPath).then(note => {
+            selectedNote = note;
+            window.history.replaceState({ note: newPath }, '', toUrlPath(newPath));
+          });
+        }
+      })
+      .then(() => loadTree())
+      .catch((e: any) => { error = e.message; });
+  }
+
   function handleDeleteDirectory(dirPath: string) {
     if (!confirm(`Delete directory "${dirPath}" and all its contents?`)) return;
     error = null;
@@ -322,6 +379,11 @@
       onNewDirectory={handleNewDirectory}
       onRenameDirectory={handleRenameDirectory}
       onDeleteDirectory={handleDeleteDirectory}
+      onRenameFile={handleRenameFile}
+      onDeleteFile={handleDeleteFile}
+      onRenameNote={handleRenameNoteInline}
+      onDeleteNote={handleDeleteNoteInline}
+      onUpload={loadTree}
       onToggleSettings={() => showSettings = !showSettings}
       onSetTheme={setTheme}
     />

@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { TreeNode } from './types';
   import Self from './TreeDir.svelte';
+  import { uploadFiles } from './api';
 
   interface Props {
     dir: TreeNode;
@@ -12,6 +13,11 @@
     onNewDirectory: (dirPath: string) => void;
     onRenameDirectory: (dirPath: string) => void;
     onDeleteDirectory: (dirPath: string) => void;
+    onRenameFile: (filePath: string) => void;
+    onDeleteFile: (filePath: string) => void;
+    onRenameNote: (notePath: string) => void;
+    onDeleteNote: (notePath: string) => void;
+    onUpload: () => void;
   }
 
   let {
@@ -24,6 +30,11 @@
     onNewDirectory,
     onRenameDirectory,
     onDeleteDirectory,
+    onRenameFile,
+    onDeleteFile,
+    onRenameNote,
+    onDeleteNote,
+    onUpload,
   }: Props = $props();
 
   let expanded = $state(false);
@@ -35,6 +46,28 @@
 
   function toggle() {
     expanded = !expanded;
+  }
+
+  let fileInput: HTMLInputElement;
+
+  async function handleUpload(dirPath: string) {
+    fileInput.click();
+    (fileInput as any)._uploadDir = dirPath;
+  }
+
+  async function onFilesSelected(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const dir = (input as any)._uploadDir || '';
+    const files = input.files;
+    if (!files || files.length === 0) return;
+    try {
+      await uploadFiles(files, dir);
+      onUpload();
+    } catch (err: any) {
+      alert('Upload failed: ' + err.message);
+    } finally {
+      input.value = '';
+    }
   }
 
   const subdirs = $derived(dir.children?.filter(c => c.type === 'directory') ?? []);
@@ -55,9 +88,13 @@
     <button class="btn-icon tree-btn" title="Rename directory" onclick={(e) => { e.stopPropagation(); onRenameDirectory(dir.path); }}>
       <i class="fas fa-pencil-alt fa-xs"></i>
     </button>
+    <button class="btn-icon tree-btn" title="Upload files" onclick={(e) => { e.stopPropagation(); handleUpload(dir.path); }}>
+      <i class="fas fa-upload fa-xs"></i>
+    </button>
     <button class="btn-icon tree-btn danger" title="Delete directory" onclick={(e) => { e.stopPropagation(); onDeleteDirectory(dir.path); }}>
       <i class="fas fa-times fa-xs"></i>
     </button>
+    <input type="file" multiple bind:this={fileInput} onchange={onFilesSelected} style="display:none" />
   </div>
 
   {#if expanded}
@@ -73,27 +110,45 @@
           {onNewDirectory}
           {onRenameDirectory}
           {onDeleteDirectory}
+          {onRenameFile}
+          {onDeleteFile}
+          {onRenameNote}
+          {onDeleteNote}
+          {onUpload}
         />
       {/each}
       {#each subnotes as note (note.path)}
-        <button
-          class="tree-note"
-          class:active={selectedNotePath === note.path}
-          onclick={() => onSelectNote(note.path)}
-        >
-          {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file-lines"></i></span>{/if}
-          <span class="tree-label">{note.name}</span>
-        </button>
+        <div class="tree-note-row" class:active={selectedNotePath === note.path}>
+          <button
+            class="tree-note"
+            class:active={selectedNotePath === note.path}
+            onclick={() => onSelectNote(note.path)}
+          >
+            {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file-lines"></i></span>{/if}
+            <span class="tree-label">{note.name}</span>
+          </button>
+          <button class="btn-icon tree-btn" title="Rename" onclick={() => onRenameNote(note.path)}>
+            <i class="fas fa-pencil-alt fa-xs"></i>
+          </button>
+          <button class="btn-icon tree-btn danger" title="Delete" onclick={() => onDeleteNote(note.path)}>
+            <i class="fas fa-times fa-xs"></i>
+          </button>
+        </div>
       {/each}
 
       {#each subfiles as file (file.path)}
-        <button
-          class="tree-note"
-          onclick={() => window.open('/f/' + file.path, '_blank')}
-        >
-          {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file"></i></span>{/if}
-          <span class="tree-label">{file.name}</span>
-        </button>
+        <div class="tree-file-row">
+          <button class="tree-note" onclick={() => window.open('/f/' + file.path, '_blank')}>
+            {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file"></i></span>{/if}
+            <span class="tree-label">{file.name}</span>
+          </button>
+          <button class="btn-icon tree-btn" title="Rename" onclick={() => onRenameFile(file.path)}>
+            <i class="fas fa-pencil-alt fa-xs"></i>
+          </button>
+          <button class="btn-icon tree-btn danger" title="Delete" onclick={() => onDeleteFile(file.path)}>
+            <i class="fas fa-times fa-xs"></i>
+          </button>
+        </div>
       {/each}
     </div>
   {/if}
@@ -173,5 +228,95 @@
 
   .tree-children {
     padding-left: 36px;
+  }
+
+  .tree-note-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    cursor: default;
+    transition: background 0.1s;
+  }
+
+  .tree-note-row.active {
+    background: var(--accent);
+    color: var(--accent-text);
+  }
+
+  .tree-note-row .tree-note {
+    flex: 1;
+    padding: 0;
+    width: auto;
+    background: none;
+  }
+
+  .tree-note-row:hover {
+    background: var(--bg-tertiary);
+  }
+
+  .tree-note-row.active:hover {
+    background: var(--accent-hover);
+  }
+
+  .tree-note-row .tree-btn {
+    opacity: 0;
+    transition: opacity 0.1s;
+    color: var(--text-muted);
+    padding: 2px 4px;
+  }
+
+  .tree-note-row .tree-btn.danger:hover {
+    color: var(--danger);
+  }
+
+  .tree-note-row.active .tree-btn {
+    color: var(--accent-text);
+  }
+
+  .tree-note-row.active .tree-btn.danger:hover {
+    color: #ffcccc;
+  }
+
+  .tree-note-row:hover .tree-btn {
+    opacity: 1;
+  }
+
+  .tree-file-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    cursor: default;
+    transition: background 0.1s;
+  }
+
+  .tree-file-row:hover {
+    background: var(--bg-tertiary);
+  }
+
+  .tree-file-row .tree-note {
+    flex: 1;
+    padding: 0;
+    width: auto;
+  }
+
+  .tree-file-row:hover .tree-note {
+    background: none;
+  }
+
+  .tree-file-row .tree-btn {
+    opacity: 0;
+    transition: opacity 0.1s;
+    color: var(--text-muted);
+    padding: 2px 4px;
+  }
+
+  .tree-file-row .tree-btn.danger:hover {
+    color: var(--danger);
+  }
+
+  .tree-file-row:hover .tree-btn {
+    opacity: 1;
   }
 </style>

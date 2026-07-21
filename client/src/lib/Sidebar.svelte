@@ -2,7 +2,7 @@
   import type { TreeNode } from './types';
   import type { SearchResult } from './types';
   import TreeDir from './TreeDir.svelte';
-  import { searchNotes } from './api';
+  import { searchNotes, uploadFiles } from './api';
   import { loadSettings, saveSettings, DEFAULTS } from './settings';
   import type { Theme, SortMode } from './settings';
   import themes from './themes';
@@ -17,6 +17,11 @@
     onNewDirectory: (dirPath: string) => void;
     onRenameDirectory: (dirPath: string) => void;
     onDeleteDirectory: (dirPath: string) => void;
+    onRenameFile: (filePath: string) => void;
+    onDeleteFile: (filePath: string) => void;
+    onRenameNote: (notePath: string) => void;
+    onDeleteNote: (notePath: string) => void;
+    onUpload: () => void;
     onToggleSettings: () => void;
     onSetTheme: (t: Theme) => void;
   }
@@ -31,6 +36,11 @@
     onNewDirectory,
     onRenameDirectory,
     onDeleteDirectory,
+    onRenameFile,
+    onDeleteFile,
+    onRenameNote,
+    onDeleteNote,
+    onUpload,
     onToggleSettings,
     onSetTheme,
   }: Props = $props();
@@ -46,6 +56,39 @@
   let showFileIcons = $state(_settings.showFileIcons);
   let vimModeEnabled = $state(_settings.vimMode);
   let collapseKey = $state(0);
+
+  let fileInput: HTMLInputElement;
+
+  async function handleUpload(dirPath: string) {
+    fileInput.click();
+    // Store dirPath for the change handler
+    (fileInput as any)._uploadDir = dirPath;
+  }
+
+  async function onFilesSelected(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const dir = (input as any)._uploadDir || '';
+    const files = input.files;
+    if (!files || files.length === 0) return;
+    try {
+      await uploadFiles(files, dir);
+      // Tree reload is handled by the parent via callback — but we need to trigger it
+      // The simplest way is to have the parent reload. We'll use a callback approach.
+      // For now, just reload the page to refresh tree.
+      // Actually, let's add a callback prop for this.
+      // Hmm, let me just reload the tree via the parent. 
+      // The parent App.svelte has onNewNote and onNewDirectory which trigger loadTree.
+      // We don't have an onUpload callback. Let me add one.
+      // Actually, the simplest approach: emit a custom event that the parent can handle.
+      // But Svelte 5 uses callback props. Let me just add onUpload to Props.
+      // For now, I'll use a simpler approach and reload the page.
+      window.location.reload();
+    } catch (err: any) {
+      alert('Upload failed: ' + err.message);
+    } finally {
+      input.value = '';
+    }
+  }
 
   function toggleSort() {
     const next = sortMode === 'chrono' ? 'alpha' : 'chrono';
@@ -136,6 +179,10 @@
       <button class="btn-icon" title="New Directory" onclick={() => onNewDirectory('')}>
         <i class="fas fa-folder-plus"></i>
       </button>
+      <button class="btn-icon" title="Upload files" onclick={() => handleUpload('')}>
+        <i class="fas fa-upload"></i>
+      </button>
+      <input type="file" multiple bind:this={fileInput} onchange={onFilesSelected} style="display:none" />
     </div>
   </div>
 
@@ -288,21 +335,42 @@
           {onNewDirectory}
           {onRenameDirectory}
           {onDeleteDirectory}
+          {onRenameFile}
+          {onDeleteFile}
+          {onRenameNote}
+          {onDeleteNote}
+          {onUpload}
         />
       {/each}
 
       {#each rootNotes as note (note.path)}
-        <button class="tree-note" class:active={selectedNotePath === note.path} onclick={() => onSelectNote(note.path)}>
-          {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file-lines"></i></span>{/if}
-          <span class="tree-label">{note.name}</span>
-        </button>
+        <div class="tree-note-row" class:active={selectedNotePath === note.path}>
+          <button class="tree-note" class:active={selectedNotePath === note.path} onclick={() => onSelectNote(note.path)}>
+            {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file-lines"></i></span>{/if}
+            <span class="tree-label">{note.name}</span>
+          </button>
+          <button class="btn-icon tree-btn" title="Rename" onclick={() => onRenameNote(note.path)}>
+            <i class="fas fa-pencil-alt fa-xs"></i>
+          </button>
+          <button class="btn-icon tree-btn danger" title="Delete" onclick={() => onDeleteNote(note.path)}>
+            <i class="fas fa-times fa-xs"></i>
+          </button>
+        </div>
       {/each}
 
       {#each rootFiles as file (file.path)}
-        <button class="tree-note" onclick={() => window.open('/f/' + file.path, '_blank')}>
-          {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file"></i></span>{/if}
-          <span class="tree-label">{file.name}</span>
-        </button>
+        <div class="tree-file-row">
+          <button class="tree-note" onclick={() => window.open('/f/' + file.path, '_blank')}>
+            {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file"></i></span>{/if}
+            <span class="tree-label">{file.name}</span>
+          </button>
+          <button class="btn-icon tree-btn" title="Rename" onclick={() => onRenameFile(file.path)}>
+            <i class="fas fa-pencil-alt fa-xs"></i>
+          </button>
+          <button class="btn-icon tree-btn danger" title="Delete" onclick={() => onDeleteFile(file.path)}>
+            <i class="fas fa-times fa-xs"></i>
+          </button>
+        </div>
       {/each}
 
       {#if tree.length === 0}
@@ -557,6 +625,95 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .tree-note-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    cursor: default;
+    transition: background 0.1s;
+  }
+
+  .tree-note-row.active {
+    background: var(--accent);
+    color: var(--accent-text);
+  }
+
+  .tree-note-row .tree-note {
+    flex: 1;
+    padding: 0;
+    width: auto;
+    background: none;
+  }
+
+  .tree-note-row:hover {
+    background: var(--bg-tertiary);
+  }
+
+  .tree-note-row.active:hover {
+    background: var(--accent-hover);
+  }
+
+  .tree-note-row .tree-btn {
+    opacity: 0;
+    transition: opacity 0.1s;
+    color: var(--text-muted);
+    padding: 2px 4px;
+  }
+
+  .tree-note-row .tree-btn.danger:hover {
+    color: var(--danger);
+  }
+
+  .tree-note-row.active .tree-btn {
+    color: var(--accent-text);
+  }
+
+  .tree-note-row.active .tree-btn.danger:hover {
+    color: #ffcccc;
+  }
+
+  .tree-note-row:hover .tree-btn {
+    opacity: 1;
+  }
+
+  .tree-file-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    cursor: default;
+  }
+
+  .tree-file-row .tree-note {
+    flex: 1;
+    padding: 0;
+    width: auto;
+  }
+
+  .tree-file-row:hover .tree-note {
+    background: none;
+  }
+
+  .tree-file-row:hover {
+    background: var(--bg-tertiary);
+  }
+
+  .tree-file-row .tree-btn {
+    opacity: 0;
+    transition: opacity 0.1s;
+    color: var(--text-muted);
+    padding: 2px 4px;
+  }
+
+  .tree-file-row .tree-btn.danger:hover {
+    color: var(--danger);
+  }
+
+  .tree-file-row:hover .tree-btn {
+    opacity: 1;
   }
 
   .tree-empty {

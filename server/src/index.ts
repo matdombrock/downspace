@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
+import multer from 'multer';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -47,7 +48,7 @@ function resolveDirPath(dirPath: string): string {
 }
 
 interface TreeNode {
-  type: 'directory' | 'note';
+  type: 'directory' | 'note' | 'file';
   name: string;
   path: string;
   children?: TreeNode[];
@@ -271,6 +272,104 @@ app.post('/api/directory/move', (req, res) => {
 
     fs.renameSync(safeOld, safeNew);
     res.json({ success: true });
+  } catch (err: any) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+// ─── API: Files ──────────────────────────────────────────────────────────────
+
+/** Resolve an arbitrary file path under NOTES_DIR (no .md enforcement). */
+function resolveFilePath(filePath: string): string {
+  const p = filePath.replace(/\\/g, '/').replace(/^\/+/, '');
+  const resolved = path.resolve(NOTES_DIR, p);
+  if (!resolved.startsWith(NOTES_DIR)) {
+    throw Object.assign(new Error('Invalid path: directory traversal detected'), { status: 400 });
+  }
+  return resolved;
+}
+
+app.delete('/api/file', (req, res) => {
+  try {
+    const filePath = req.query.path as string;
+    if (!filePath) return res.status(400).json({ error: 'path query parameter required' });
+
+    const safe = resolveFilePath(filePath);
+    if (!fs.existsSync(safe)) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    if (fs.statSync(safe).isDirectory()) {
+      return res.status(400).json({ error: 'Not a file' });
+    }
+    fs.unlinkSync(safe);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.post('/api/file/move', (req, res) => {
+  try {
+    const { path: oldPath, newPath } = req.body;
+    if (!oldPath || !newPath) {
+      return res.status(400).json({ error: 'path and newPath are required' });
+    }
+
+    const safeOld = resolveFilePath(oldPath);
+    const safeNew = resolveFilePath(newPath);
+
+    if (!fs.existsSync(safeOld)) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    if (fs.statSync(safeOld).isDirectory()) {
+      return res.status(400).json({ error: 'Not a file' });
+    }
+
+    const dir = path.dirname(safeNew);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    fs.renameSync(safeOld, safeNew);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+// ─── API: Upload ─────────────────────────────────────────────────────────────
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB
+});
+
+app.post('/api/upload', upload.array('files'), (req, res) => {
+  try {
+    const dir = (req.query.dir as string || '').replace(/\\/g, '/').replace(/^\/+/, '');
+    const targetDir = dir ? resolveDirPath(dir) : NOTES_DIR;
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+
+    const files = req.files as Express.Multer.File[] | undefined;
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: 'No files uploaded' });
+    }
+
+    const saved: string[] = [];
+    for (const file of files) {
+      const safePath = path.resolve(targetDir, file.originalname);
+      if (!safePath.startsWith(NOTES_DIR)) {
+        return res.status(400).json({ error: `Invalid path: ${file.originalname}` });
+      }
+      // Prevent overwriting .md files via upload (optional, but safer)
+      fs.writeFileSync(safePath, file.buffer);
+      const relPath = path.relative(NOTES_DIR, safePath);
+      saved.push(relPath);
+    }
+
+    res.json({ success: true, files: saved });
   } catch (err: any) {
     res.status(err.status || 500).json({ error: err.message });
   }
