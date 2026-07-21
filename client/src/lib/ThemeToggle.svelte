@@ -1,5 +1,5 @@
 <script lang="ts">
-  type Theme = 'light' | 'dark' | 'dark-modern' | 'dark-oled';
+  type Theme = 'light' | 'dark' | 'dark-modern' | 'dark-oled' | 'gruvbox' | 'everforest';
 
   interface Props {
     theme: Theme;

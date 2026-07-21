@@ -195,6 +195,14 @@
         <i class="fas fa-circle"></i>
         <span>Dark OLED</span>
       </button>
+      <button class="theme-option" class:active={theme === 'gruvbox'} onclick={() => onSetTheme('gruvbox')}>
+        <i class="fas fa-moon"></i>
+        <span>Gruvbox</span>
+      </button>
+      <button class="theme-option" class:active={theme === 'everforest'} onclick={() => onSetTheme('everforest')}>
+        <i class="fas fa-moon"></i>
+        <span>Everforest</span>
+      </button>
 
       <div class="settings-divider"></div>
 

@@ -38,11 +38,11 @@
 
   // ─── Theme ──────────────────────────────────────────────────────────────
 
-  const THEME_CYCLE = ['light', 'dark', 'dark-modern', 'dark-oled'] as const;
+  const THEME_CYCLE = ['light', 'dark', 'dark-modern', 'dark-oled', 'gruvbox', 'everforest'] as const;
   type Theme = typeof THEME_CYCLE[number];
 
   function applyTheme(t: Theme) {
-    document.documentElement.classList.remove('dark', 'dark-modern', 'dark-oled');
+    document.documentElement.classList.remove('dark', 'dark-modern', 'dark-oled', 'gruvbox', 'everforest');
     if (t !== 'light') {
       document.documentElement.classList.add(t);
     }
