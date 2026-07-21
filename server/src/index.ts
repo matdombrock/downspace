@@ -289,6 +289,7 @@ interface SearchResult {
 app.get('/api/search', (req, res) => {
   try {
     const q = (req.query.q as string || '').trim();
+    const mode = (req.query.mode as string) || 'fulltext';
     if (!q) return res.json([]);
 
     ensureNotesDir();
@@ -323,7 +324,7 @@ app.get('/api/search', (req, res) => {
           const contentLower = content.toLowerCase();
           const contentMatch = contentLower.includes(qLower);
 
-          if (!nameMatch && !contentMatch) continue;
+          if (mode === 'filename' ? !nameMatch : !nameMatch && !contentMatch) continue;
 
           const stat = fs.statSync(fullPath);
           const titleMatch = content.match(/^#\s+(.+)/m);

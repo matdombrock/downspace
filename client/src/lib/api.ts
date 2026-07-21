@@ -62,6 +62,6 @@ export async function moveDirectory(path: string, newPath: string): Promise<void
   });
 }
 
-export async function searchNotes(q: string): Promise<SearchResult[]> {
-  return request<SearchResult[]>(`/search?q=${encodeURIComponent(q)}`);
+export async function searchNotes(q: string, mode: 'fulltext' | 'filename' = 'filename'): Promise<SearchResult[]> {
+  return request<SearchResult[]>(`/search?q=${encodeURIComponent(q)}&mode=${mode}`);
 }

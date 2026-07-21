@@ -77,8 +77,13 @@
   // ─── Search ────────────────────────────────────────────────────────────
 
   let query = $state('');
+  let searchMode = $state<'fulltext' | 'filename'>('filename');
   let searchResults = $state<SearchResult[]>([]);
   let searchLoading = $state(false);
+
+  function toggleSearchMode() {
+    searchMode = searchMode === 'fulltext' ? 'filename' : 'fulltext';
+  }
 
   const sortedSearchResults = $derived(
     [...searchResults].sort((a, b) => {
@@ -96,10 +101,11 @@
       searchLoading = false;
       return;
     }
+    const currentMode = searchMode;
     searchLoading = true;
     const timer = setTimeout(async () => {
       try {
-        searchResults = await searchNotes(q);
+        searchResults = await searchNotes(q, currentMode);
       } catch {
         searchResults = [];
       } finally {
@@ -125,7 +131,14 @@
 
   <div class="sidebar-search">
     <span class="sidebar-search-icon"><i class="fas fa-search"></i></span>
-    <input class="sidebar-search-input" type="search" placeholder="Search notes…" bind:value={query} />
+    <button class="btn-icon sidebar-search-mode" title="{searchMode === 'fulltext' ? 'Searching full text' : 'Searching file names only'}" onclick={toggleSearchMode}>
+      {#if searchMode === 'fulltext'}
+        <i class="fas fa-align-left"></i>
+      {:else}
+        <i class="fas fa-font"></i>
+      {/if}
+    </button>
+    <input class="sidebar-search-input" type="search" placeholder="{searchMode === 'fulltext' ? 'Search full text…' : 'Search file names…'}" bind:value={query} />
     {#if query}
       <button class="btn-icon sidebar-search-clear" title="Clear" onclick={() => query = ''}>
         <i class="fas fa-times"></i>
@@ -282,6 +295,17 @@
 
   .sidebar-search-input::placeholder {
     color: var(--text-muted);
+  }
+
+  .sidebar-search-mode {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 2px 4px;
+  }
+
+  .sidebar-search-mode:hover {
+    color: var(--text);
   }
 
   .sidebar-search-clear {
