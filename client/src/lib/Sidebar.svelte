@@ -41,6 +41,8 @@
   document.documentElement.style.setProperty('--sidebar-width', (isNaN(w) ? 280 : Math.max(180, w)) + 'px');
 
   let sortMode = $state<SortMode>(_settings.sort);
+  let showFileIcons = $state(_settings.showFileIcons);
+  let vimModeEnabled = $state(_settings.vimMode);
   let collapseKey = $state(0);
 
   function toggleSort() {
@@ -162,7 +164,7 @@
         <div class="search-count">{searchResults.length} result{searchResults.length === 1 ? '' : 's'}</div>
         {#each sortedSearchResults as r (r.path)}
           <button class="search-result-item" onclick={() => { query = ''; onSelectNote(r.path); }}>
-            <span class="tree-dot"><i class="fas fa-file-lines"></i></span>
+            {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file-lines"></i></span>{/if}
             <div class="search-result-body">
               <span class="search-result-title">{r.title}</span>
               <span class="search-result-path">{r.path}</span>
@@ -192,6 +194,28 @@
       <button class="theme-option" class:active={theme === 'dark-oled'} onclick={() => onSetTheme('dark-oled')}>
         <i class="fas fa-circle"></i>
         <span>Dark OLED</span>
+      </button>
+
+      <div class="settings-divider"></div>
+
+      <button class="settings-action" onclick={() => {
+        showFileIcons = !showFileIcons;
+        const s = loadSettings();
+        s.showFileIcons = showFileIcons;
+        saveSettings(s);
+      }}>
+        <i class="fas fa-icons"></i>
+        <span>File icons {showFileIcons ? 'shown' : 'hidden'}</span>
+      </button>
+
+      <button class="settings-action" onclick={() => {
+        vimModeEnabled = !vimModeEnabled;
+        const s = loadSettings();
+        s.vimMode = vimModeEnabled;
+        saveSettings(s);
+      }}>
+        <i class="fas fa-keyboard"></i>
+        <span>Vim mode {vimModeEnabled ? 'on' : 'off'}</span>
       </button>
 
       <div class="settings-divider"></div>
@@ -253,6 +277,7 @@
         <TreeDir
           {dir}
           {collapseKey}
+          {showFileIcons}
           {selectedNotePath}
           {onSelectNote}
           {onNewNote}
@@ -264,14 +289,14 @@
 
       {#each rootNotes as note (note.path)}
         <button class="tree-note" class:active={selectedNotePath === note.path} onclick={() => onSelectNote(note.path)}>
-          <span class="tree-dot"><i class="fas fa-file-lines"></i></span>
+          {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file-lines"></i></span>{/if}
           <span class="tree-label">{note.name}</span>
         </button>
       {/each}
 
       {#each rootFiles as file (file.path)}
         <button class="tree-note" onclick={() => window.open('/f/' + file.path, '_blank')}>
-          <span class="tree-dot"><i class="fas fa-file"></i></span>
+          {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file"></i></span>{/if}
           <span class="tree-label">{file.name}</span>
         </button>
       {/each}

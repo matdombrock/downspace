@@ -7,6 +7,7 @@
   import { indentWithTab } from '@codemirror/commands';
   import { vim } from '@replit/codemirror-vim';
   import { oneDark } from '@codemirror/theme-one-dark';
+  import { loadSettings } from './settings';
   import type { Note } from './types';
 
   interface Props {
@@ -28,11 +29,13 @@
 
   // ─── Build extensions ──────────────────────────────────────────────────
 
+  const _settings = loadSettings();
+
   function createExtensions(content: string, saveFn: () => void) {
     return [
       basicSetup,
       markdown(),
-      vim(),
+      _settings.vimMode ? vim() : [],
       editorTheme(),
       keymap.of([
         indentWithTab,

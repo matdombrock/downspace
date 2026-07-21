@@ -5,6 +5,8 @@ export interface Settings {
   theme: Theme;
   sort: SortMode;
   sidebarWidth: number;
+  vimMode: boolean;
+  showFileIcons: boolean;
 }
 
 const KEY = 'downspace-settings';
@@ -13,6 +15,8 @@ export const DEFAULTS: Settings = {
   theme: 'dark',
   sort: 'chrono',
   sidebarWidth: 280,
+  vimMode: true,
+  showFileIcons: true,
 };
 
 /** Migrate old separate keys into the single blob. */

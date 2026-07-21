@@ -5,6 +5,7 @@
   interface Props {
     dir: TreeNode;
     collapseKey: number;
+    showFileIcons: boolean;
     selectedNotePath: string | null;
     onSelectNote: (path: string) => void;
     onNewNote: (dirPath: string) => void;
@@ -16,6 +17,7 @@
   let {
     dir,
     collapseKey,
+    showFileIcons,
     selectedNotePath,
     onSelectNote,
     onNewNote,
@@ -45,7 +47,7 @@
     <span class="tree-arrow" class:expanded>
       <i class="fas fa-chevron-right fa-xs"></i>
     </span>
-    <span class="tree-folder"><i class="fas fa-folder"></i></span>
+    {#if showFileIcons}<span class="tree-folder"><i class="fas fa-folder"></i></span>{/if}
     <span class="tree-label">{dir.name}</span>
     <button class="btn-icon tree-btn" title="New Note" onclick={(e) => { e.stopPropagation(); onNewNote(dir.path); }}>
       <i class="fas fa-plus fa-xs"></i>
@@ -64,6 +66,7 @@
         <Self
           dir={subdir}
           {collapseKey}
+          {showFileIcons}
           {selectedNotePath}
           {onSelectNote}
           {onNewNote}
@@ -78,7 +81,7 @@
           class:active={selectedNotePath === note.path}
           onclick={() => onSelectNote(note.path)}
         >
-          <span class="tree-dot"><i class="fas fa-file-lines"></i></span>
+          {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file-lines"></i></span>{/if}
           <span class="tree-label">{note.name}</span>
         </button>
       {/each}
@@ -88,7 +91,7 @@
           class="tree-note"
           onclick={() => window.open('/f/' + file.path, '_blank')}
         >
-          <span class="tree-dot"><i class="fas fa-file"></i></span>
+          {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file"></i></span>{/if}
           <span class="tree-label">{file.name}</span>
         </button>
       {/each}
