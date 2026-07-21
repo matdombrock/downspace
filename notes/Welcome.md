@@ -7,7 +7,9 @@ This is your personal note-taking space. Notes are stored as plain markdown file
 - **Create a note**: Click the `+` icon in the sidebar, or create a `.md` file in the `notes/` directory.
 - **Edit a note**: Select a note and click the **Edit** button.
 - **Delete a note**: Select a note and click the **Delete** button.
+- **Copy a note**: Click the **Copy** button in the header to copy note content to clipboard.
 - **Organize**: Use directories to group your notes.
+- **Search**: Use the search bar at the top of the sidebar to search filenames or full text.
 - **Internal links**: Link to other notes like [Pasta](Recipes/Pasta).
 
 ## Markdown Support

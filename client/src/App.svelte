@@ -315,7 +315,7 @@
       <div class="empty-state">Loading...</div>
     {:else if !selectedNote}
       <div class="empty-state">
-        <div class="empty-icon"><i class="fas fa-star fa-4x"></i></div>
+        <div class="empty-icon"><i class="fa-solid fa-user-astronaut fa-4x"></i></div>
         <h2>downspace</h2>
         <p>Select a note from the sidebar, or create a new one.</p>
       </div>
