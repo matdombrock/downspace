@@ -6,6 +6,8 @@
   import ThemeToggle from './lib/ThemeToggle.svelte';
   import type { TreeNode, Note } from './lib/types';
   import { fetchTree, fetchNote, saveNote, deleteNote as apiDeleteNote, createDirectory, deleteDirectory as apiDeleteDirectory, moveNote, moveDirectory } from './lib/api';
+  import { loadSettings, saveSettings } from './lib/settings';
+  import type { Theme } from './lib/settings';
 
   let tree = $state<TreeNode[]>([]);
   let selectedNote = $state<Note | null>(null);
@@ -19,10 +21,7 @@
   // ─── Lifecycle ──────────────────────────────────────────────────────────
 
   onMount(async () => {
-    const saved = localStorage.getItem('downspace-theme');
-    if (saved === 'light' || saved === 'dark' || saved === 'dark-modern' || saved === 'dark-oled') {
-      theme = saved;
-    }
+    theme = loadSettings().theme;
     applyTheme(theme);
     await loadTree();
 
@@ -53,13 +52,17 @@
     const idx = THEME_CYCLE.indexOf(theme);
     theme = THEME_CYCLE[(idx + 1) % THEME_CYCLE.length];
     applyTheme(theme);
-    localStorage.setItem('downspace-theme', theme);
+    const s = loadSettings();
+    s.theme = theme;
+    saveSettings(s);
   }
 
   function setTheme(t: Theme) {
     theme = t;
     applyTheme(t);
-    localStorage.setItem('downspace-theme', t);
+    const s = loadSettings();
+    s.theme = t;
+    saveSettings(s);
   }
 
   // ─── Tree loading ───────────────────────────────────────────────────────

@@ -3,8 +3,8 @@
   import type { SearchResult } from './types';
   import TreeDir from './TreeDir.svelte';
   import { searchNotes } from './api';
-
-  type Theme = 'light' | 'dark' | 'dark-modern' | 'dark-oled';
+  import { loadSettings, saveSettings } from './settings';
+  import type { Theme, SortMode } from './settings';
 
   interface Props {
     tree: TreeNode[];
@@ -34,15 +34,20 @@
     onSetTheme,
   }: Props = $props();
 
-  let sortMode = $state<'chrono' | 'alpha'>(
-    (localStorage.getItem('downspace-sort') as 'chrono' | 'alpha' | null) ?? 'chrono'
-  );
+  const MIN_SIDEBAR = 180;
+
+  const _settings = loadSettings();
+  document.documentElement.style.setProperty('--sidebar-width', String(_settings.sidebarWidth) + 'px');
+
+  let sortMode = $state<SortMode>(_settings.sort);
   let collapseKey = $state(0);
 
   function toggleSort() {
     const next = sortMode === 'chrono' ? 'alpha' : 'chrono';
     sortMode = next;
-    localStorage.setItem('downspace-sort', next);
+    const s = loadSettings();
+    s.sort = next;
+    saveSettings(s);
   }
 
   function collapseAll() {
@@ -238,6 +243,31 @@
       <i class="fas fa-gear"></i>
     </button>
   </div>
+
+  <div
+    class="sidebar-resize-handle"
+    onmousedown={(e) => {
+      e.preventDefault();
+      const startX = e.clientX;
+      const startW = document.documentElement.style.getPropertyValue('--sidebar-width').trim() || '280px';
+      const startVal = parseInt(startW);
+
+      function onMove(ev: MouseEvent) {
+        const w = Math.max(MIN_SIDEBAR, startVal + ev.clientX - startX);
+        document.documentElement.style.setProperty('--sidebar-width', w + 'px');
+      }
+      function onUp() {
+        const w = document.documentElement.style.getPropertyValue('--sidebar-width');
+        const s = loadSettings();
+        s.sidebarWidth = w;
+        saveSettings(s);
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    }}
+  ></div>
 </div>
 
 <style>
@@ -245,6 +275,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    position: relative;
   }
 
   .sidebar-header {
@@ -517,5 +548,30 @@
 
   .settings-btn:hover {
     color: var(--text);
+  }
+
+  /* ─── Resize handle ───────────────────────────────────────────────────── */
+
+  .sidebar-resize-handle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 4px;
+    cursor: col-resize;
+    background: transparent;
+    transition: background 0.15s;
+    z-index: 10;
+  }
+
+  .sidebar-resize-handle:hover,
+  .sidebar-resize-handle:active {
+    background: var(--accent);
+  }
+
+  @media (max-width: 768px) {
+    .sidebar-resize-handle {
+      display: none;
+    }
   }
 </style>
