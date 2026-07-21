@@ -9,8 +9,8 @@ export interface Settings {
 
 const KEY = 'downspace-settings';
 
-const DEFAULTS: Settings = {
-  theme: 'light',
+export const DEFAULTS: Settings = {
+  theme: 'dark',
   sort: 'chrono',
   sidebarWidth: 280,
 };
@@ -44,7 +44,11 @@ export function loadSettings(): Settings {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return { ...DEFAULTS, ...parsed };
+      const merged = { ...DEFAULTS, ...parsed };
+      // Coerce sidebarWidth to a clean number (old buggy code saved '280px' as string)
+      const n = typeof merged.sidebarWidth === 'number' ? merged.sidebarWidth : parseInt(merged.sidebarWidth);
+      merged.sidebarWidth = isNaN(n) ? DEFAULTS.sidebarWidth : Math.max(180, n);
+      return merged;
     }
   } catch {
     // corrupt — fall through

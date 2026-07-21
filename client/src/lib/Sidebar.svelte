@@ -3,7 +3,7 @@
   import type { SearchResult } from './types';
   import TreeDir from './TreeDir.svelte';
   import { searchNotes } from './api';
-  import { loadSettings, saveSettings } from './settings';
+  import { loadSettings, saveSettings, DEFAULTS } from './settings';
   import type { Theme, SortMode } from './settings';
 
   interface Props {
@@ -37,7 +37,8 @@
   const MIN_SIDEBAR = 180;
 
   const _settings = loadSettings();
-  document.documentElement.style.setProperty('--sidebar-width', String(_settings.sidebarWidth) + 'px');
+  const w = typeof _settings.sidebarWidth === 'number' ? _settings.sidebarWidth : parseInt(_settings.sidebarWidth);
+  document.documentElement.style.setProperty('--sidebar-width', (isNaN(w) ? 280 : Math.max(180, w)) + 'px');
 
   let sortMode = $state<SortMode>(_settings.sort);
   let collapseKey = $state(0);
@@ -192,6 +193,59 @@
         <i class="fas fa-circle"></i>
         <span>Dark OLED</span>
       </button>
+
+      <div class="settings-divider"></div>
+
+      <div class="settings-title">Settings File</div>
+
+      <button class="settings-action" onclick={() => {
+        if (confirm('Reset all settings to defaults?')) {
+          saveSettings(DEFAULTS);
+          location.reload();
+        }
+      }}>
+        <i class="fas fa-undo"></i>
+        <span>Clear</span>
+      </button>
+
+      <button class="settings-action" onclick={() => {
+        const json = JSON.stringify(loadSettings(), null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'downspace.settings.json';
+        a.click();
+        URL.revokeObjectURL(url);
+      }}>
+        <i class="fas fa-download"></i>
+        <span>Export</span>
+      </button>
+
+      <input type="file" accept=".json" class="settings-file-input" id="settings-import" onchange={(e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const parsed = JSON.parse(reader.result as string);
+            if (parsed.theme || parsed.sort || parsed.sidebarWidth !== undefined) {
+              saveSettings({ ...DEFAULTS, ...parsed });
+              location.reload();
+            } else {
+              alert('Invalid settings file.');
+            }
+          } catch {
+            alert('Invalid settings file.');
+          }
+        };
+        reader.readAsText(file);
+        (e.target as HTMLInputElement).value = '';
+      }} />
+      <label for="settings-import" class="settings-action">
+        <i class="fas fa-upload"></i>
+        <span>Import</span>
+      </label>
     </div>
   {:else}
     <div class="sidebar-tree">
@@ -257,10 +311,12 @@
         document.documentElement.style.setProperty('--sidebar-width', w + 'px');
       }
       function onUp() {
-        const w = document.documentElement.style.getPropertyValue('--sidebar-width');
-        const s = loadSettings();
-        s.sidebarWidth = w;
-        saveSettings(s);
+        const w = parseInt(document.documentElement.style.getPropertyValue('--sidebar-width'));
+        if (w > 0) {
+          const s = loadSettings();
+          s.sidebarWidth = w;
+          saveSettings(s);
+        }
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
       }
@@ -528,6 +584,43 @@
     width: 18px;
     text-align: center;
     color: var(--accent);
+  }
+
+  .settings-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 12px 0;
+  }
+
+  .settings-action {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    border-radius: var(--radius);
+    background: none;
+    color: var(--text);
+    font-size: 14px;
+    cursor: pointer;
+    text-align: left;
+    margin-bottom: 4px;
+    transition: background 0.15s;
+  }
+
+  .settings-action:hover {
+    background: var(--bg-tertiary);
+  }
+
+  .settings-action i {
+    width: 18px;
+    text-align: center;
+    color: var(--text-secondary);
+  }
+
+  .settings-file-input {
+    display: none;
   }
 
   /* ─── Footer ──────────────────────────────────────────────────────────── */
