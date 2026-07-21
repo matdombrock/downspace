@@ -25,7 +25,7 @@ export const DEFAULTS: Settings = {
   theme: 'dark',
   sort: 'chrono',
   sidebarWidth: 280,
-  vimMode: true,
+  vimMode: false,
   showFileIcons: true,
 };
 

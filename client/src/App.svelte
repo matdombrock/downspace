@@ -182,6 +182,28 @@
       .catch((e: any) => { error = e.message; });
   }
 
+  function handleCopyNote() {
+    if (!selectedNote) return;
+    const text = selectedNote.content;
+    // Try the modern clipboard API first
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text: string) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+
   function handleEdit() {
     editMode = true;
   }
@@ -272,7 +294,7 @@
       {#if selectedNote && !editMode}
         <button class="btn" onclick={handleRenameNote} title="Rename"><i class="fas fa-tag"></i></button>
         <button class="btn" onclick={handleEdit} title="Edit"><i class="fas fa-pen-to-square"></i></button>
-        <button class="btn" onclick={() => navigator.clipboard.writeText(selectedNote!.content)} title="Copy to clipboard"><i class="fas fa-copy"></i></button>
+        <button class="btn" onclick={handleCopyNote} title="Copy to clipboard"><i class="fas fa-copy"></i></button>
         <button class="btn" onclick={handleDelete} title="Delete"><i class="fas fa-trash-alt"></i></button>
       {/if}
       {#if selectedNote && editMode}
@@ -306,7 +328,7 @@
   </aside>
 
   <!-- Main content -->
-  <main class="main-content">
+  <main class="main-content" class:edit-mode={editMode}>
     {#if error}
       <div class="error-bar">{error}</div>
     {/if}
@@ -477,6 +499,10 @@
 
     .main-content {
       padding: 16px;
+    }
+
+    .main-content.edit-mode {
+      padding: 0;
     }
   }
 </style>

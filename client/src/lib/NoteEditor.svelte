@@ -87,8 +87,10 @@
   <div class="editor-meta">
     <span class="editor-path">{note.directory ? note.directory + '/' : ''}{note.name}.md</span>
     <span class="editor-hint">Editing</span>
-    <button class="btn-icon" title="Save (Ctrl+S)" onclick={handleSaveFromEditor}><i class="fas fa-save"></i></button>
-    <button class="btn-icon" title="Cancel" onclick={onCancel}><i class="fas fa-times"></i></button>
+    <span class="editor-actions">
+      <button class="btn-icon" title="Save (Ctrl+S)" onclick={handleSaveFromEditor}><i class="fas fa-save"></i></button>
+      <button class="btn-icon" title="Cancel" onclick={onCancel}><i class="fas fa-times"></i></button>
+    </span>
   </div>
   <div class="editor-cm-wrapper" bind:this={editorRef}></div>
 </div>
@@ -160,5 +162,22 @@
   .editor-meta :global(.btn-icon:hover) {
     background: var(--bg-tertiary);
     color: var(--text);
+  }
+
+  @media (max-width: 768px) {
+    .editor {
+      max-width: none;
+      margin: 0;
+      height: 100%;
+    }
+
+    .editor-actions {
+      margin-left: auto;
+    }
+
+    .editor-actions :global(.btn-icon) {
+      padding: 8px 10px;
+      font-size: 16px;
+    }
   }
 </style>
