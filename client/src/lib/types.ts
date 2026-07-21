@@ -14,3 +14,11 @@ export interface Note {
   modified: string;
   directory: string;
 }
+
+export interface SearchResult {
+  path: string;
+  name: string;
+  title: string;
+  snippet: string;
+  modified: string;
+}

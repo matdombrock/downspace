@@ -276,6 +276,92 @@ app.post('/api/directory/move', (req, res) => {
   }
 });
 
+// ─── API: Search ─────────────────────────────────────────────────────────────
+
+interface SearchResult {
+  path: string;
+  name: string;
+  title: string;
+  snippet: string;
+  modified: string;
+}
+
+app.get('/api/search', (req, res) => {
+  try {
+    const q = (req.query.q as string || '').trim();
+    if (!q) return res.json([]);
+
+    ensureNotesDir();
+    const qLower = q.toLowerCase();
+    const results: SearchResult[] = [];
+
+    function walk(dir: string, basePath: string) {
+      let items: fs.Dirent[];
+      try {
+        items = fs.readdirSync(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const item of items) {
+        if (item.name.startsWith('.')) continue;
+        const fullPath = path.join(dir, item.name);
+        const relativePath = basePath ? `${basePath}/${item.name}` : item.name;
+
+        if (item.isDirectory()) {
+          walk(fullPath, relativePath);
+        } else if (item.isFile() && item.name.endsWith('.md')) {
+          const name = item.name.slice(0, -3);
+          const nameLower = name.toLowerCase();
+          const nameMatch = nameLower.includes(qLower);
+
+          let content: string;
+          try {
+            content = fs.readFileSync(fullPath, 'utf-8');
+          } catch {
+            continue;
+          }
+          const contentLower = content.toLowerCase();
+          const contentMatch = contentLower.includes(qLower);
+
+          if (!nameMatch && !contentMatch) continue;
+
+          const stat = fs.statSync(fullPath);
+          const titleMatch = content.match(/^#\s+(.+)/m);
+          const title = titleMatch ? titleMatch[1].trim() : name;
+
+          // Extract snippet around first match
+          let snippet = '';
+          const idx = contentLower.indexOf(qLower);
+          if (idx >= 0) {
+            const start = Math.max(0, idx - 60);
+            const end = Math.min(content.length, idx + q.length + 60);
+            snippet = (start > 0 ? '…' : '') + content.slice(start, end).replace(/\n/g, ' ') + (end < content.length ? '…' : '');
+          }
+
+          results.push({ path: relativePath, name, title, snippet, modified: stat.mtime.toISOString() });
+        }
+      }
+    }
+
+    walk(NOTES_DIR, '');
+
+    // Score and sort: filename-prefix match > filename-substring > content match
+    results.sort((a, b) => {
+      const aName = a.name.toLowerCase();
+      const bName = b.name.toLowerCase();
+      const aStarts = aName.startsWith(qLower);
+      const bStarts = bName.startsWith(qLower);
+      if (aStarts !== bStarts) return aStarts ? -1 : 1;
+      if (aName.includes(qLower) !== bName.includes(qLower)) return aName.includes(qLower) ? -1 : 1;
+      return b.modified.localeCompare(a.modified);
+    });
+
+    res.json(results.slice(0, 50));
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Static file serving ────────────────────────────────────────────────────
 
 if (fs.existsSync(CLIENT_DIST)) {

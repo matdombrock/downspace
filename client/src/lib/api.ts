@@ -1,4 +1,4 @@
-import type { TreeNode, Note } from './types';
+import type { TreeNode, Note, SearchResult } from './types';
 
 const BASE = '/api';
 
@@ -60,4 +60,8 @@ export async function moveDirectory(path: string, newPath: string): Promise<void
     method: 'POST',
     body: JSON.stringify({ path, newPath }),
   });
+}
+
+export async function searchNotes(q: string): Promise<SearchResult[]> {
+  return request<SearchResult[]>(`/search?q=${encodeURIComponent(q)}`);
 }
