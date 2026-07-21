@@ -59,6 +59,82 @@
 
   let fileInput: HTMLInputElement;
 
+  // ─── Context menu ───────────────────────────────────────────────────────
+
+  interface ContextMenuItem {
+    label: string;
+    icon: string;
+    action: () => void;
+  }
+
+  let contextMenu = $state<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
+
+  function openContextMenu(el: HTMLElement, items: ContextMenuItem[], _clientY?: number) {
+    const rect = el.getBoundingClientRect();
+    const sidebarContent = document.querySelector('.sidebar-content');
+    const contentRect = sidebarContent?.getBoundingClientRect();
+    // Position relative to sidebar-content (which has position: relative)
+    const x = contentRect ? rect.left - contentRect.left : rect.left;
+    // Position right below the item's bottom edge
+    let y = rect.bottom;
+    if (contentRect) y -= contentRect.top;
+    // Keep within the sidebar
+    const menuHeight = items.length * 32 + 8;
+    if (y + menuHeight > (contentRect?.height || window.innerHeight)) {
+      y = (contentRect?.height || window.innerHeight) - menuHeight - 8;
+    }
+    if (y < 8) y = 8;
+    contextMenu = { x, y, items };
+  }
+
+  function closeContextMenu() {
+    contextMenu = null;
+  }
+
+  // Close context menu on click outside or Escape
+  $effect(() => {
+    if (!contextMenu) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') closeContextMenu();
+    }
+    function onClick(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.context-menu')) closeContextMenu();
+    }
+    document.addEventListener('keydown', onKey);
+    // Use a timeout so the right-click that opened the menu doesn't immediately close it
+    setTimeout(() => document.addEventListener('mousedown', onClick), 0);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onClick);
+    };
+  });
+
+  // ─── Long press helper ───────────────────────────────────────────────────
+
+  let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function onLongPressStart(el: HTMLElement, items: ContextMenuItem[], clientY: number) {
+    longPressTimer = setTimeout(() => {
+      longPressTimer = null;
+      openContextMenu(el, items, clientY);
+    }, 500);
+  }
+
+  function onLongPressMove() {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  }
+
+  function onLongPressEnd() {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  }
+
   async function handleUpload(dirPath: string) {
     fileInput.click();
     // Store dirPath for the change handler
@@ -340,34 +416,62 @@
           {onRenameNote}
           {onDeleteNote}
           {onUpload}
+          onContextMenu={openContextMenu}
         />
       {/each}
 
       {#each rootNotes as note (note.path)}
-        <div class="tree-note-row" class:active={selectedNotePath === note.path}>
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+          class="tree-note-row"
+          class:active={selectedNotePath === note.path}
+          oncontextmenu={(e) => { e.preventDefault(); openContextMenu(e.currentTarget, [
+            { label: 'Rename', icon: 'pencil-alt', action: () => onRenameNote(note.path) },
+            { label: 'Delete', icon: 'times', action: () => onDeleteNote(note.path) },
+          ], e.clientY); }}
+          ontouchstart={(e) => onLongPressStart(e.currentTarget, [
+            { label: 'Rename', icon: 'pencil-alt', action: () => onRenameNote(note.path) },
+            { label: 'Delete', icon: 'times', action: () => onDeleteNote(note.path) },
+          ], e.touches[0].clientY)}
+          ontouchmove={onLongPressMove}
+          ontouchend={onLongPressEnd}
+        >
           <button class="tree-note" class:active={selectedNotePath === note.path} onclick={() => onSelectNote(note.path)}>
             {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file-lines"></i></span>{/if}
             <span class="tree-label">{note.name}</span>
           </button>
-          <button class="btn-icon tree-btn" title="Rename" onclick={() => onRenameNote(note.path)}>
+          <button class="btn-icon tree-btn" title="Rename" onclick={() => onRenameNote(note.path)} oncontextmenu={(e) => e.stopPropagation()}>
             <i class="fas fa-pencil-alt fa-xs"></i>
           </button>
-          <button class="btn-icon tree-btn danger" title="Delete" onclick={() => onDeleteNote(note.path)}>
+          <button class="btn-icon tree-btn danger" title="Delete" onclick={() => onDeleteNote(note.path)} oncontextmenu={(e) => e.stopPropagation()}>
             <i class="fas fa-times fa-xs"></i>
           </button>
         </div>
       {/each}
 
       {#each rootFiles as file (file.path)}
-        <div class="tree-file-row">
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+          class="tree-file-row"
+          oncontextmenu={(e) => { e.preventDefault(); openContextMenu(e.currentTarget, [
+            { label: 'Rename', icon: 'pencil-alt', action: () => onRenameFile(file.path) },
+            { label: 'Delete', icon: 'times', action: () => onDeleteFile(file.path) },
+          ], e.clientY); }}
+          ontouchstart={(e) => onLongPressStart(e.currentTarget, [
+            { label: 'Rename', icon: 'pencil-alt', action: () => onRenameFile(file.path) },
+            { label: 'Delete', icon: 'times', action: () => onDeleteFile(file.path) },
+          ], e.touches[0].clientY)}
+          ontouchmove={onLongPressMove}
+          ontouchend={onLongPressEnd}
+        >
           <button class="tree-note" onclick={() => window.open('/f/' + file.path, '_blank')}>
             {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file"></i></span>{/if}
             <span class="tree-label">{file.name}</span>
           </button>
-          <button class="btn-icon tree-btn" title="Rename" onclick={() => onRenameFile(file.path)}>
+          <button class="btn-icon tree-btn" title="Rename" onclick={() => onRenameFile(file.path)} oncontextmenu={(e) => e.stopPropagation()}>
             <i class="fas fa-pencil-alt fa-xs"></i>
           </button>
-          <button class="btn-icon tree-btn danger" title="Delete" onclick={() => onDeleteFile(file.path)}>
+          <button class="btn-icon tree-btn danger" title="Delete" onclick={() => onDeleteFile(file.path)} oncontextmenu={(e) => e.stopPropagation()}>
             <i class="fas fa-times fa-xs"></i>
           </button>
         </div>
@@ -394,6 +498,22 @@
       <i class="fas fa-gear"></i>
     </button>
   </div>
+
+  {#if contextMenu}
+    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+    <div
+      class="context-menu"
+      style="left: {contextMenu.x}px; top: {contextMenu.y}px;"
+      role="menu"
+    >
+      {#each contextMenu.items as item}
+        <button class="context-menu-item" role="menuitem" onclick={item.action}>
+          <i class="fas fa-{item.icon}"></i>
+          <span>{item.label}</span>
+        </button>
+      {/each}
+    </div>
+  {/if}
 
   <div
     class="sidebar-resize-handle"
@@ -878,6 +998,44 @@
   .sidebar-resize-handle:hover,
   .sidebar-resize-handle:active {
     background: var(--accent);
+  }
+
+  /* ─── Context menu ───────────────────────────────────────────────────── */
+
+  .context-menu {
+    position: absolute;
+    z-index: 1000;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    min-width: 160px;
+    padding: 4px 0;
+  }
+
+  .context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 12px;
+    border: none;
+    background: none;
+    color: var(--text);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  .context-menu-item:hover {
+    background: var(--bg-tertiary);
+  }
+
+  .context-menu-item i {
+    width: 16px;
+    text-align: center;
+    color: var(--text-secondary);
   }
 
   @media (max-width: 768px) {

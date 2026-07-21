@@ -18,6 +18,7 @@
     onRenameNote: (notePath: string) => void;
     onDeleteNote: (notePath: string) => void;
     onUpload: () => void;
+    onContextMenu: (el: HTMLElement, items: { label: string; icon: string; action: () => void }[], clientY?: number) => void;
   }
 
   let {
@@ -35,6 +36,7 @@
     onRenameNote,
     onDeleteNote,
     onUpload,
+    onContextMenu,
   }: Props = $props();
 
   let expanded = $state(false);
@@ -49,6 +51,61 @@
   }
 
   let fileInput: HTMLInputElement;
+  let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function onDirContextMenu(el: HTMLElement, clientY?: number) {
+    onContextMenu(el, [
+      { label: 'New Note', icon: 'plus', action: () => onNewNote(dir.path) },
+      { label: 'New Directory', icon: 'folder-plus', action: () => onNewDirectory(dir.path) },
+      { label: 'Upload files', icon: 'upload', action: () => handleUpload(dir.path) },
+      { label: 'Rename', icon: 'pencil-alt', action: () => onRenameDirectory(dir.path) },
+      { label: 'Delete', icon: 'times', action: () => onDeleteDirectory(dir.path) },
+    ]);
+  }
+
+  function onDirTouchStart(el: HTMLElement, clientY: number) {
+    longPressTimer = setTimeout(() => onDirContextMenu(el, clientY), 500);
+  }
+
+  function onDirTouchMove() {
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+  }
+
+  function onDirTouchEnd() {
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+  }
+
+  function onNoteFileContextMenu(el: HTMLElement, type: 'note' | 'file', path: string, clientY?: number) {
+    const items = type === 'note'
+      ? [
+          { label: 'Rename', icon: 'pencil-alt', action: () => onRenameNote(path) },
+          { label: 'Delete', icon: 'times', action: () => onDeleteNote(path) },
+        ]
+      : [
+          { label: 'Rename', icon: 'pencil-alt', action: () => onRenameFile(path) },
+          { label: 'Delete', icon: 'times', action: () => onDeleteFile(path) },
+        ];
+    onContextMenu(el, items, clientY);
+  }
+
+  let noteFileLongPress: { timer: ReturnType<typeof setTimeout> | null; path: string; type: 'note' | 'file'; clientY: number } | null = null;
+
+  function onNoteFileTouchStart(el: HTMLElement, type: 'note' | 'file', path: string, clientY: number) {
+    noteFileLongPress = {
+      timer: setTimeout(() => onNoteFileContextMenu(el, type, path, clientY), 500),
+      path,
+      type,
+      clientY,
+    };
+  }
+
+  function onNoteFileTouchMove() {
+    if (noteFileLongPress?.timer) { clearTimeout(noteFileLongPress.timer); noteFileLongPress.timer = null; }
+  }
+
+  function onNoteFileTouchEnd() {
+    if (noteFileLongPress?.timer) { clearTimeout(noteFileLongPress.timer); noteFileLongPress.timer = null; }
+  }
 
   async function handleUpload(dirPath: string) {
     fileInput.click();
@@ -76,22 +133,27 @@
 </script>
 
 <div class="tree-item">
-  <div class="tree-dir" role="button" tabindex="0" aria-expanded={expanded} onclick={toggle} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}>
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="tree-dir" role="button" tabindex="0" aria-expanded={expanded} onclick={toggle} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}
+    oncontextmenu={(e) => { e.preventDefault(); onDirContextMenu(e.currentTarget, e.clientY); }}
+    ontouchstart={(e) => onDirTouchStart(e.currentTarget, e.touches[0].clientY)}
+    ontouchmove={onDirTouchMove}
+    ontouchend={onDirTouchEnd}>
     <span class="tree-arrow" class:expanded>
       <i class="fas fa-chevron-right fa-xs"></i>
     </span>
     {#if showFileIcons}<span class="tree-folder"><i class="fas fa-folder"></i></span>{/if}
     <span class="tree-label">{dir.name}</span>
-    <button class="btn-icon tree-btn" title="New Note" onclick={(e) => { e.stopPropagation(); onNewNote(dir.path); }}>
+    <button class="btn-icon tree-btn" title="New Note" onclick={(e) => { e.stopPropagation(); onNewNote(dir.path); }} oncontextmenu={(e) => e.stopPropagation()}>
       <i class="fas fa-plus fa-xs"></i>
     </button>
-    <button class="btn-icon tree-btn" title="Rename directory" onclick={(e) => { e.stopPropagation(); onRenameDirectory(dir.path); }}>
+    <button class="btn-icon tree-btn" title="Rename directory" onclick={(e) => { e.stopPropagation(); onRenameDirectory(dir.path); }} oncontextmenu={(e) => e.stopPropagation()}>
       <i class="fas fa-pencil-alt fa-xs"></i>
     </button>
-    <button class="btn-icon tree-btn" title="Upload files" onclick={(e) => { e.stopPropagation(); handleUpload(dir.path); }}>
+    <button class="btn-icon tree-btn" title="Upload files" onclick={(e) => { e.stopPropagation(); handleUpload(dir.path); }} oncontextmenu={(e) => e.stopPropagation()}>
       <i class="fas fa-upload fa-xs"></i>
     </button>
-    <button class="btn-icon tree-btn danger" title="Delete directory" onclick={(e) => { e.stopPropagation(); onDeleteDirectory(dir.path); }}>
+    <button class="btn-icon tree-btn danger" title="Delete directory" onclick={(e) => { e.stopPropagation(); onDeleteDirectory(dir.path); }} oncontextmenu={(e) => e.stopPropagation()}>
       <i class="fas fa-times fa-xs"></i>
     </button>
     <input type="file" multiple bind:this={fileInput} onchange={onFilesSelected} style="display:none" />
@@ -115,10 +177,19 @@
           {onRenameNote}
           {onDeleteNote}
           {onUpload}
+          {onContextMenu}
         />
       {/each}
       {#each subnotes as note (note.path)}
-        <div class="tree-note-row" class:active={selectedNotePath === note.path}>
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+          class="tree-note-row"
+          class:active={selectedNotePath === note.path}
+          oncontextmenu={(e) => { e.preventDefault(); onNoteFileContextMenu(e.currentTarget, 'note', note.path, e.clientY); }}
+          ontouchstart={(e) => onNoteFileTouchStart(e.currentTarget, 'note', note.path, e.touches[0].clientY)}
+          ontouchmove={onNoteFileTouchMove}
+          ontouchend={onNoteFileTouchEnd}
+        >
           <button
             class="tree-note"
             class:active={selectedNotePath === note.path}
@@ -127,25 +198,32 @@
             {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file-lines"></i></span>{/if}
             <span class="tree-label">{note.name}</span>
           </button>
-          <button class="btn-icon tree-btn" title="Rename" onclick={() => onRenameNote(note.path)}>
+          <button class="btn-icon tree-btn" title="Rename" onclick={() => onRenameNote(note.path)} oncontextmenu={(e) => e.stopPropagation()}>
             <i class="fas fa-pencil-alt fa-xs"></i>
           </button>
-          <button class="btn-icon tree-btn danger" title="Delete" onclick={() => onDeleteNote(note.path)}>
+          <button class="btn-icon tree-btn danger" title="Delete" onclick={() => onDeleteNote(note.path)} oncontextmenu={(e) => e.stopPropagation()}>
             <i class="fas fa-times fa-xs"></i>
           </button>
         </div>
       {/each}
 
       {#each subfiles as file (file.path)}
-        <div class="tree-file-row">
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+          class="tree-file-row"
+          oncontextmenu={(e) => { e.preventDefault(); onNoteFileContextMenu(e.currentTarget, 'file', file.path, e.clientY); }}
+          ontouchstart={(e) => onNoteFileTouchStart(e.currentTarget, 'file', file.path, e.touches[0].clientY)}
+          ontouchmove={onNoteFileTouchMove}
+          ontouchend={onNoteFileTouchEnd}
+        >
           <button class="tree-note" onclick={() => window.open('/f/' + file.path, '_blank')}>
             {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file"></i></span>{/if}
             <span class="tree-label">{file.name}</span>
           </button>
-          <button class="btn-icon tree-btn" title="Rename" onclick={() => onRenameFile(file.path)}>
+          <button class="btn-icon tree-btn" title="Rename" onclick={() => onRenameFile(file.path)} oncontextmenu={(e) => e.stopPropagation()}>
             <i class="fas fa-pencil-alt fa-xs"></i>
           </button>
-          <button class="btn-icon tree-btn danger" title="Delete" onclick={() => onDeleteFile(file.path)}>
+          <button class="btn-icon tree-btn danger" title="Delete" onclick={() => onDeleteFile(file.path)} oncontextmenu={(e) => e.stopPropagation()}>
             <i class="fas fa-times fa-xs"></i>
           </button>
         </div>
