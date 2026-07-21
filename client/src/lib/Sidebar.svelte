@@ -23,6 +23,7 @@
     onDeleteNote: (notePath: string) => void;
     onUpload: () => void;
     onToggleSettings: () => void;
+    onToggleShell: () => void;
     onSetTheme: (t: Theme) => void;
   }
 
@@ -42,6 +43,7 @@
     onDeleteNote,
     onUpload,
     onToggleSettings,
+    onToggleShell,
     onSetTheme,
   }: Props = $props();
 
@@ -481,6 +483,9 @@
     </button>
     <button class="btn-icon" title="Collapse all" onclick={collapseAll}>
       <i class="fas fa-compress-alt"></i>
+    </button>
+    <button class="btn-icon" title="Shell" onclick={onToggleShell}>
+      <i class="fas fa-terminal"></i>
     </button>
     <button class="btn-icon settings-btn" title="Settings" onclick={onToggleSettings}>
       <i class="fas fa-gear"></i>

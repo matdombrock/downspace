@@ -4,6 +4,10 @@ import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
+import { exec as execCb } from 'child_process';
+import { promisify } from 'util';
+
+const exec = promisify(execCb);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const NOTES_DIR = process.env.NOTES
@@ -458,6 +462,38 @@ app.get('/api/search', (req, res) => {
 
     res.json(results.slice(0, 50));
   } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── API: Exec ──────────────────────────────────────────────────────────────
+
+app.post('/exec', async (req, res) => {
+  try {
+    const { command } = req.body;
+    if (!command || typeof command !== 'string' || !command.trim()) {
+      return res.status(400).json({ error: 'command string required' });
+    }
+
+    const result = await exec(command, {
+      timeout: 30_000,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+
+    res.json({
+      stdout: result.stdout,
+      stderr: result.stderr,
+      exitCode: 0,
+    });
+  } catch (err: any) {
+    // exec rejects with the error object which includes stdout/stderr on non-zero exit
+    if (err.stdout !== undefined || err.stderr !== undefined) {
+      return res.json({
+        stdout: err.stdout || '',
+        stderr: err.stderr || '',
+        exitCode: err.code || 1,
+      });
+    }
     res.status(500).json({ error: err.message });
   }
 });

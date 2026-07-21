@@ -4,6 +4,7 @@
   import NoteViewer from './lib/NoteViewer.svelte';
   import NoteEditor from './lib/NoteEditor.svelte';
   import ThemeToggle from './lib/ThemeToggle.svelte';
+  import Shell from './lib/Shell.svelte';
   import type { TreeNode, Note } from './lib/types';
   import { fetchTree, fetchNote, saveNote, deleteNote as apiDeleteNote, createDirectory, deleteDirectory as apiDeleteDirectory, moveNote, moveDirectory, deleteFile as apiDeleteFile, moveFile as apiMoveFile } from './lib/api';
   import { loadSettings, saveSettings } from './lib/settings';
@@ -16,6 +17,7 @@
   let theme = $state<Theme>('light');
   let sidebarOpen = $state(false);
   let showSettings = $state(false);
+  let showShell = $state(false);
   let loading = $state(false);
   let error = $state<string | null>(null);
 
@@ -385,17 +387,22 @@
       onDeleteNote={handleDeleteNoteInline}
       onUpload={loadTree}
       onToggleSettings={() => showSettings = !showSettings}
+      onToggleShell={() => showShell = !showShell}
       onSetTheme={setTheme}
     />
   </aside>
 
   <!-- Main content -->
-  <main class="main-content" class:edit-mode={editMode}>
+  <main class="main-content" class:edit-mode={editMode} class:shell-open={showShell}>
     {#if error}
       <div class="error-bar">{error}</div>
     {/if}
 
-    {#if loading}
+    {#if showShell}
+      <div class="shell-container">
+        <Shell />
+      </div>
+    {:else if loading}
       <div class="empty-state">Loading...</div>
     {:else if !selectedNote}
       <div class="empty-state">
@@ -523,6 +530,20 @@
     font-size: 14px;
   }
 
+  .shell-container {
+    height: calc(100vh - var(--header-height) - 48px);
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 768px) {
+    .shell-container {
+      max-width: none;
+      margin: 0;
+      height: 100%;
+    }
+  }
+
   @media (max-width: 768px) {
     .app-layout {
       grid-template-columns: 1fr;
@@ -564,6 +585,10 @@
     }
 
     .main-content.edit-mode {
+      padding: 0;
+    }
+
+    .main-content.shell-open {
       padding: 0;
     }
   }
