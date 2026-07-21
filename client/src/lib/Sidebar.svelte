@@ -500,7 +500,7 @@
       role="menu"
     >
       {#each contextMenu.items as item}
-        <button class="context-menu-item" role="menuitem" onclick={item.action}>
+        <button class="context-menu-item" role="menuitem" onclick={() => { item.action(); closeContextMenu(); }}>
           <i class="fas fa-{item.icon}"></i>
           <span>{item.label}</span>
         </button>
