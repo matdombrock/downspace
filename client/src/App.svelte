@@ -272,6 +272,7 @@
       {#if selectedNote && !editMode}
         <button class="btn" onclick={handleRenameNote} title="Rename"><i class="fas fa-tag"></i></button>
         <button class="btn" onclick={handleEdit} title="Edit"><i class="fas fa-pen-to-square"></i></button>
+        <button class="btn" onclick={() => navigator.clipboard.writeText(selectedNote!.content)} title="Copy to clipboard"><i class="fas fa-copy"></i></button>
         <button class="btn" onclick={handleDelete} title="Delete"><i class="fas fa-trash-alt"></i></button>
       {/if}
       {#if selectedNote && editMode}
@@ -362,12 +363,24 @@
     font-size: 16px;
     font-weight: 600;
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .header-actions {
     display: flex;
     align-items: center;
     gap: 8px;
+    max-width: 50vw;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-shrink: 0;
+  }
+  .header-actions::-webkit-scrollbar {
+    display: none;
   }
 
   .hamburger {
