@@ -1,0 +1,15 @@
+{
+  "name": "downspace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.js",
+    "build": "cd client && npx vite build",
+    "start": "cd server && node --import tsx src/index.ts",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
