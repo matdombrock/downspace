@@ -440,12 +440,6 @@
             {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file-lines"></i></span>{/if}
             <span class="tree-label">{note.name}</span>
           </button>
-          <button class="btn-icon tree-btn" title="Rename" onclick={() => onRenameNote(note.path)} oncontextmenu={(e) => e.stopPropagation()}>
-            <i class="fas fa-pencil-alt fa-xs"></i>
-          </button>
-          <button class="btn-icon tree-btn danger" title="Delete" onclick={() => onDeleteNote(note.path)} oncontextmenu={(e) => e.stopPropagation()}>
-            <i class="fas fa-times fa-xs"></i>
-          </button>
         </div>
       {/each}
 
@@ -467,12 +461,6 @@
           <button class="tree-note" onclick={() => window.open('/f/' + file.path, '_blank')}>
             {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file"></i></span>{/if}
             <span class="tree-label">{file.name}</span>
-          </button>
-          <button class="btn-icon tree-btn" title="Rename" onclick={() => onRenameFile(file.path)} oncontextmenu={(e) => e.stopPropagation()}>
-            <i class="fas fa-pencil-alt fa-xs"></i>
-          </button>
-          <button class="btn-icon tree-btn danger" title="Delete" onclick={() => onDeleteFile(file.path)} oncontextmenu={(e) => e.stopPropagation()}>
-            <i class="fas fa-times fa-xs"></i>
           </button>
         </div>
       {/each}
@@ -776,29 +764,6 @@
     background: var(--accent-hover);
   }
 
-  .tree-note-row .tree-btn {
-    opacity: 0;
-    transition: opacity 0.1s;
-    color: var(--text-muted);
-    padding: 2px 4px;
-  }
-
-  .tree-note-row .tree-btn.danger:hover {
-    color: var(--danger);
-  }
-
-  .tree-note-row.active .tree-btn {
-    color: var(--accent-text);
-  }
-
-  .tree-note-row.active .tree-btn.danger:hover {
-    color: #ffcccc;
-  }
-
-  .tree-note-row:hover .tree-btn {
-    opacity: 1;
-  }
-
   .tree-file-row {
     display: flex;
     align-items: center;
@@ -819,21 +784,6 @@
 
   .tree-file-row:hover {
     background: var(--bg-tertiary);
-  }
-
-  .tree-file-row .tree-btn {
-    opacity: 0;
-    transition: opacity 0.1s;
-    color: var(--text-muted);
-    padding: 2px 4px;
-  }
-
-  .tree-file-row .tree-btn.danger:hover {
-    color: var(--danger);
-  }
-
-  .tree-file-row:hover .tree-btn {
-    opacity: 1;
   }
 
   .tree-empty {
