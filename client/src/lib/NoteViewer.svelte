@@ -19,6 +19,8 @@
     return note.directory ? `${note.directory}/${href}` : href;
   }
 
+  let viewerRef: HTMLDivElement;
+
   let rendered = $derived.by(() => {
     const renderer = new marked.Renderer();
 
@@ -45,6 +47,18 @@
     return marked(note.content || '*Empty note*', { renderer });
   });
 
+  // Re-execute <script> tags after render (innerHTML skips them)
+  $effect(() => {
+    rendered;
+    if (!viewerRef) return;
+    for (const old of viewerRef.querySelectorAll('script')) {
+      const s = document.createElement('script');
+      if (old.src) s.src = old.src;
+      else s.textContent = old.textContent;
+      old.replaceWith(s);
+    }
+  });
+
   function handleClick(e: MouseEvent) {
     const link = (e.target as HTMLElement).closest('a[data-internal-link]') as HTMLAnchorElement | null;
     if (!link) return;
@@ -60,7 +74,7 @@
     <span class="viewer-modified">Modified: {new Date(note.modified).toLocaleString()}</span>
   </div>
   <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <div role="presentation" class="markdown viewer-content" onclick={handleClick}>
+  <div role="presentation" class="markdown viewer-content" bind:this={viewerRef} onclick={handleClick}>
     {@html rendered}
   </div>
 </div>
