@@ -5,6 +5,7 @@
   import { searchNotes } from './api';
   import { loadSettings, saveSettings, DEFAULTS } from './settings';
   import type { Theme, SortMode } from './settings';
+  import themes from './themes';
 
   interface Props {
     tree: TreeNode[];
@@ -40,6 +41,7 @@
   const w = typeof _settings.sidebarWidth === 'number' ? _settings.sidebarWidth : parseInt(_settings.sidebarWidth);
   document.documentElement.style.setProperty('--sidebar-width', (isNaN(w) ? 280 : Math.max(180, w)) + 'px');
 
+  let showThemes = $state(false);
   let sortMode = $state<SortMode>(_settings.sort);
   let showFileIcons = $state(_settings.showFileIcons);
   let vimModeEnabled = $state(_settings.vimMode);
@@ -178,31 +180,25 @@
     </div>
   {:else if showSettings}
     <div class="settings-panel">
-      <div class="settings-title">Theme</div>
-      <button class="theme-option" class:active={theme === 'light'} onclick={() => onSetTheme('light')}>
-        <i class="fas fa-sun"></i>
-        <span>Light</span>
+      <button class="settings-section-toggle" onclick={() => showThemes = !showThemes}>
+        <span class="settings-arrow" class:expanded={showThemes}><i class="fas fa-chevron-right fa-xs"></i></span>
+        <span class="settings-title" style="margin:0">Themes</span>
       </button>
-      <button class="theme-option" class:active={theme === 'dark'} onclick={() => onSetTheme('dark')}>
-        <i class="fas fa-moon"></i>
-        <span>Dark</span>
-      </button>
-      <button class="theme-option" class:active={theme === 'dark-modern'} onclick={() => onSetTheme('dark-modern')}>
-        <i class="fas fa-moon"></i>
-        <span>Dark Modern</span>
-      </button>
-      <button class="theme-option" class:active={theme === 'dark-oled'} onclick={() => onSetTheme('dark-oled')}>
-        <i class="fas fa-circle"></i>
-        <span>Dark OLED</span>
-      </button>
-      <button class="theme-option" class:active={theme === 'gruvbox'} onclick={() => onSetTheme('gruvbox')}>
-        <i class="fas fa-moon"></i>
-        <span>Gruvbox</span>
-      </button>
-      <button class="theme-option" class:active={theme === 'everforest'} onclick={() => onSetTheme('everforest')}>
-        <i class="fas fa-moon"></i>
-        <span>Everforest</span>
-      </button>
+
+      {#if showThemes}
+        <div class="settings-theme-grid">
+          {#each themes as t (t.id)}
+            <button
+              class="theme-chip"
+              class:active={theme === t.id}
+              onclick={() => onSetTheme(t.id as Theme)}
+            >
+              <i class="fas fa-{t.icon}"></i>
+              <span>{t.label}</span>
+            </button>
+          {/each}
+        </div>
+      {/if}
 
       <div class="settings-divider"></div>
 
@@ -578,45 +574,77 @@
     overflow-y: auto;
   }
 
+  .settings-section-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 0;
+    border: none;
+    background: none;
+    color: var(--text);
+    font-size: 14px;
+    cursor: pointer;
+    text-align: left;
+    margin-bottom: 8px;
+  }
+
+  .settings-arrow {
+    display: flex;
+    align-items: center;
+    width: 12px;
+    transition: transform 0.15s;
+    color: var(--text-muted);
+  }
+
+  .settings-arrow.expanded {
+    transform: rotate(90deg);
+  }
+
   .settings-title {
     font-size: 13px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--text-secondary);
+  }
+
+  .settings-theme-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
     margin-bottom: 8px;
   }
 
-  .theme-option {
+  .theme-chip {
     display: flex;
     align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 10px 12px;
+    gap: 6px;
+    padding: 6px 8px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--bg-secondary);
     color: var(--text);
-    font-size: 14px;
+    font-size: 12px;
     cursor: pointer;
     text-align: left;
-    margin-bottom: 6px;
     transition: background 0.15s, border-color 0.15s;
   }
 
-  .theme-option:hover {
+  .theme-chip:hover {
     background: var(--bg-tertiary);
   }
 
-  .theme-option.active {
+  .theme-chip.active {
     border-color: var(--accent);
     background: var(--bg-tertiary);
   }
 
-  .theme-option i {
-    width: 18px;
+  .theme-chip i {
+    width: 14px;
     text-align: center;
     color: var(--accent);
+    font-size: 11px;
   }
 
   .settings-divider {

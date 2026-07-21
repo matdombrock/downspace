@@ -1,5 +1,6 @@
 <script lang="ts">
-  type Theme = 'light' | 'dark' | 'dark-modern' | 'dark-oled' | 'gruvbox' | 'everforest';
+  import themes from './themes';
+  import type { Theme } from './settings';
 
   interface Props {
     theme: Theme;
@@ -7,17 +8,13 @@
   }
 
   let { theme, ontoggle }: Props = $props();
+
+  let current = $derived(themes.find(t => t.id === theme));
 </script>
 
-<button class="btn-icon theme-btn" onclick={ontoggle} title="{theme}">
-  {#if theme === 'light'}
-    <i class="fas fa-sun fa-lg"></i>
-  {:else if theme === 'dark-oled'}
-    <i class="fas fa-circle fa-lg"></i>
-  {:else if theme === 'dark-modern'}
-    <i class="fas fa-moon fa-lg"></i>
-  {:else}
-    <i class="fas fa-moon fa-lg"></i>
+<button class="btn-icon theme-btn" onclick={ontoggle} title={current?.label ?? theme}>
+  {#if current}
+    <i class="fas fa-{current.icon} fa-lg"></i>
   {/if}
 </button>
 

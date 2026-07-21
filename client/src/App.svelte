@@ -8,11 +8,12 @@
   import { fetchTree, fetchNote, saveNote, deleteNote as apiDeleteNote, createDirectory, deleteDirectory as apiDeleteDirectory, moveNote, moveDirectory } from './lib/api';
   import { loadSettings, saveSettings } from './lib/settings';
   import type { Theme } from './lib/settings';
+  import themes, { applyThemeById } from './lib/themes';
 
   let tree = $state<TreeNode[]>([]);
   let selectedNote = $state<Note | null>(null);
   let editMode = $state(false);
-  let theme = $state<'light' | 'dark' | 'dark-modern' | 'dark-oled'>('light');
+  let theme = $state<Theme>('light');
   let sidebarOpen = $state(false);
   let showSettings = $state(false);
   let loading = $state(false);
@@ -38,14 +39,11 @@
 
   // ─── Theme ──────────────────────────────────────────────────────────────
 
-  const THEME_CYCLE = ['light', 'dark', 'dark-modern', 'dark-oled', 'gruvbox', 'everforest'] as const;
+  const THEME_CYCLE = themes.map(t => t.id) as Theme[];
   type Theme = typeof THEME_CYCLE[number];
 
   function applyTheme(t: Theme) {
-    document.documentElement.classList.remove('dark', 'dark-modern', 'dark-oled', 'gruvbox', 'everforest');
-    if (t !== 'light') {
-      document.documentElement.classList.add(t);
-    }
+    applyThemeById(t);
   }
 
   function toggleTheme() {

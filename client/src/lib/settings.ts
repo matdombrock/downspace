@@ -1,4 +1,14 @@
-export type Theme = 'light' | 'dark' | 'dark-modern' | 'dark-oled' | 'gruvbox' | 'everforest';
+export type Theme =
+  | 'light'
+  | 'dark'
+  | 'dark-modern'
+  | 'dark-oled'
+  | 'gruvbox'
+  | 'everforest'
+  | 'catppuccin'
+  | 'nord'
+  | 'tokyo-night'
+  | 'dracula';
 export type SortMode = 'chrono' | 'alpha';
 
 export interface Settings {
