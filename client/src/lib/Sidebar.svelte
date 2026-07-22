@@ -59,9 +59,12 @@
   let sortMode = $state<SortMode>(_settings.sort);
   let showFileIcons = $state(_settings.showFileIcons);
   let vimModeEnabled = $state(_settings.vimMode);
+  let spellcheckEnabled = $state(_settings.spellcheck);
   let lineNumbersEnabled = $state(_settings.lineNumbers);
   let syntaxHighlightEnabled = $state(_settings.syntaxHighlight);
   let completionsEnabled = $state(_settings.completions);
+  let markdownFlavor = $state<'default' | 'gfm'>(_settings.markdownFlavor);
+  let markdownBreaksEnabled = $state(_settings.markdownBreaks);
   let collapseKey = $state(0);
 
   let fileInput: HTMLInputElement;
@@ -415,6 +418,31 @@
       }}>
         <i class="fas fa-keyboard"></i>
         <span>Vim mode {vimModeEnabled ? 'on' : 'off'}</span>
+      </button>
+
+      <div class="settings-divider"></div>
+
+      <div class="settings-title">Markdown</div>
+
+      <button class="settings-action" onclick={() => {
+        const next = markdownFlavor === 'default' ? 'gfm' : 'default';
+        markdownFlavor = next;
+        const s = loadSettings();
+        s.markdownFlavor = next;
+        saveSettings(s);
+      }}>
+        <i class="fas fa-flask"></i>
+        <span>Flavor: {markdownFlavor === 'gfm' ? 'GFM' : 'Default'}</span>
+      </button>
+
+      <button class="settings-action" onclick={() => {
+        markdownBreaksEnabled = !markdownBreaksEnabled;
+        const s = loadSettings();
+        s.markdownBreaks = markdownBreaksEnabled;
+        saveSettings(s);
+      }}>
+        <i class="fas fa-text-slash"></i>
+        <span>Line breaks {markdownBreaksEnabled ? 'on' : 'off'}</span>
       </button>
 
       <div class="settings-divider"></div>

@@ -10,6 +10,7 @@ export type Theme =
   | 'tokyo-night'
   | 'dracula';
 export type SortMode = 'chrono' | 'alpha';
+export type MarkdownFlavor = 'default' | 'gfm';
 
 export interface Settings {
   theme: Theme;
@@ -22,7 +23,11 @@ export interface Settings {
   completions: boolean;
   showFileIcons: boolean;
   favorites: string[];
+  markdownFlavor: MarkdownFlavor;
+  markdownBreaks: boolean;
 }
+
+import { writable } from 'svelte/store';
 
 const KEY = 'downspace-settings';
 
@@ -37,6 +42,8 @@ export const DEFAULTS: Settings = {
   completions: true,
   showFileIcons: true,
   favorites: [],
+  markdownFlavor: 'gfm',
+  markdownBreaks: false,
 };
 
 /** Migrate old separate keys into the single blob. */
@@ -87,8 +94,11 @@ export function loadSettings(): Settings {
   return { ...DEFAULTS };
 }
 
+export const settingsStore = writable<Settings>(loadSettings());
+
 export function saveSettings(settings: Settings): void {
   localStorage.setItem(KEY, JSON.stringify(settings));
+  settingsStore.set(settings);
 }
 
 // ─── Favorites helpers ──────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { marked } from 'marked';
+  import { settingsStore } from './settings';
   import type { Note } from './types';
 
   interface Props {
@@ -22,6 +23,8 @@
   let viewerRef: HTMLDivElement;
 
   let rendered = $derived.by(() => {
+    const s = $settingsStore;
+
     const renderer = new marked.Renderer();
 
     renderer.link = (token) => {
@@ -44,7 +47,11 @@
       return `<img src="/f/${resolved}" alt="${alt}"${titleAttr}>`;
     };
 
-    return marked(note.content || '*Empty note*', { renderer });
+    return marked(note.content || '*Empty note*', {
+      renderer,
+      gfm: s.markdownFlavor === 'gfm',
+      breaks: s.markdownBreaks,
+    });
   });
 
   // Re-execute <script> tags after render (innerHTML skips them)
