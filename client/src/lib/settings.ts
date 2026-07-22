@@ -26,6 +26,7 @@ export interface Settings {
   markdownFlavor: MarkdownFlavor;
   markdownBreaks: boolean;
   inlineMath: boolean;
+  viewerKeybindings: boolean;
 }
 
 import { writable } from 'svelte/store';
@@ -46,6 +47,7 @@ export const DEFAULTS: Settings = {
   markdownFlavor: 'gfm',
   markdownBreaks: false,
   inlineMath: false,
+  viewerKeybindings: true,
 };
 
 /** Migrate old separate keys into the single blob. */

@@ -177,6 +177,38 @@
     const path = link.getAttribute('data-internal-link');
     if (path) onNavigateToNote(path);
   }
+
+  // ─── Keybindings (view mode only) ──────────────────────────────────────
+
+  function onKeydown(e: KeyboardEvent) {
+    const s = $settingsStore;
+    if (!s.viewerKeybindings) return;
+
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === 'e') {
+        e.preventDefault();
+        onEdit();
+      } else if (e.key === 'y') {
+        e.preventDefault();
+        const text = note.content;
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(text);
+        }
+      } else if (e.key === 'u') {
+        e.preventDefault();
+        const url = window.location.href;
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(url);
+        }
+      }
+    }
+  }
+
+  // Register/unregister window keydown while this component is mounted
+  $effect(() => {
+    window.addEventListener('keydown', onKeydown);
+    return () => window.removeEventListener('keydown', onKeydown);
+  });
 </script>
 
 <div class="viewer">

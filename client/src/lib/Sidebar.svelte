@@ -59,6 +59,7 @@
   let sortMode = $state<SortMode>(_settings.sort);
   let showFileIcons = $state(_settings.showFileIcons);
   let vimModeEnabled = $state(_settings.vimMode);
+  let viewerKeybindings = $state(_settings.viewerKeybindings);
   let spellcheckEnabled = $state(_settings.spellcheck);
   let lineNumbersEnabled = $state(_settings.lineNumbers);
   let syntaxHighlightEnabled = $state(_settings.syntaxHighlight);
@@ -423,7 +424,17 @@
 
       <div class="settings-divider"></div>
 
-      <div class="settings-title">Markdown</div>
+      <div class="settings-title">Viewer</div>
+
+      <button class="settings-action" onclick={() => {
+        viewerKeybindings = !viewerKeybindings;
+        const s = loadSettings();
+        s.viewerKeybindings = viewerKeybindings;
+        saveSettings(s);
+      }}>
+        <i class="fas fa-keyboard"></i>
+        <span>Keybinds {viewerKeybindings ? 'on' : 'off'}</span>
+      </button>
 
       <button class="settings-action" onclick={() => {
         const next = markdownFlavor === 'default' ? 'gfm' : 'default';
@@ -453,7 +464,7 @@
         saveSettings(s);
       }}>
         <i class="fas fa-superscript"></i>
-        <span>Render inline math {inlineMathEnabled ? 'on' : 'off'}</span>
+        <span>Inline math {inlineMathEnabled ? 'on' : 'off'}</span>
       </button>
 
       <div class="settings-divider"></div>
