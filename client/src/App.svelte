@@ -41,7 +41,7 @@
     // Check URL for note to load (internal link navigation or direct visit)
     const urlPath = window.location.pathname.slice(1).replace(/\/$/, '');
     if (urlPath) {
-      navigateToNoteFromPath(urlPath);
+      navigateToNoteFromPath(decodeURIComponent(urlPath));
     }
 
     // Handle back/forward navigation
@@ -88,7 +88,7 @@
   // ─── URL ↔ note path helpers ────────────────────────────────────────────
 
   function toUrlPath(notePath: string): string {
-    return '/' + notePath.replace(/\.md$/, '');
+    return '/' + notePath.replace(/\.md$/, '').split('/').map(s => encodeURIComponent(s)).join('/');
   }
 
   /** Try to load a note from a URL path segment. Returns true if found. */
@@ -107,7 +107,7 @@
   function onPopState() {
     const path = window.location.pathname.slice(1).replace(/\/$/, '');
     if (path) {
-      navigateToNoteFromPath(path);
+      navigateToNoteFromPath(decodeURIComponent(path));
     } else {
       selectedNote = null;
       editMode = false;
