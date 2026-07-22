@@ -11,6 +11,7 @@
     tree: TreeNode[];
     showSettings: boolean;
     theme: Theme;
+    favorites: string[];
     selectedNotePath: string | null;
     onSelectNote: (path: string) => void;
     onNewNote: (dirPath: string) => void;
@@ -31,6 +32,7 @@
     tree,
     showSettings,
     theme,
+    favorites,
     selectedNotePath,
     onSelectNote,
     onNewNote,
@@ -176,6 +178,26 @@
     saveSettings(s);
   }
 
+  // ─── Favorites filter ──────────────────────────────────────────────────
+
+  let showFavorites = $state(false);
+
+  function filterFavorites(nodes: TreeNode[]): TreeNode[] {
+    return nodes.reduce<TreeNode[]>((acc, node) => {
+      if (node.type === 'note') {
+        if (favorites.includes(node.path)) {
+          acc.push(node);
+        }
+      } else if (node.type === 'directory') {
+        const children = node.children ? filterFavorites(node.children) : [];
+        if (children.length > 0) {
+          acc.push({ ...node, children });
+        }
+      }
+      return acc;
+    }, []);
+  }
+
   function collapseAll() {
     collapseKey++;
   }
@@ -199,7 +221,8 @@
     }));
   }
 
-  const sortedTree = $derived(sortNodes(tree));
+  const baseTree = $derived(showFavorites ? filterFavorites(tree) : tree);
+  const sortedTree = $derived(sortNodes(baseTree));
 
   const rootDirs = $derived(sortedTree.filter(n => n.type === 'directory'));
   const rootNotes = $derived(sortedTree.filter(n => n.type === 'note'));
@@ -467,7 +490,9 @@
         </div>
       {/each}
 
-      {#if tree.length === 0}
+      {#if showFavorites && rootDirs.length === 0 && rootNotes.length === 0}
+        <div class="tree-empty">No favorite notes</div>
+      {:else if tree.length === 0}
         <div class="tree-empty">No notes yet</div>
       {/if}
     </div>
@@ -483,6 +508,9 @@
     </button>
     <button class="btn-icon" title="Collapse all" onclick={collapseAll}>
       <i class="fas fa-compress-alt"></i>
+    </button>
+    <button class="btn-icon" class:active={showFavorites} title="Favorites" onclick={() => showFavorites = !showFavorites}>
+      <i class="{showFavorites ? 'fas' : 'far'} fa-star"></i>
     </button>
     <button class="btn-icon" title="Shell" onclick={onToggleShell}>
       <i class="fas fa-terminal"></i>
@@ -925,6 +953,10 @@
     gap: 8px;
     padding: 8px;
     border-top: 1px solid var(--border);
+  }
+
+  .sidebar-footer .btn-icon.active {
+    color: var(--accent);
   }
 
   .settings-btn {

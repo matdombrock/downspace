@@ -17,6 +17,7 @@ export interface Settings {
   sidebarWidth: number;
   vimMode: boolean;
   showFileIcons: boolean;
+  favorites: string[];
 }
 
 const KEY = 'downspace-settings';
@@ -27,6 +28,7 @@ export const DEFAULTS: Settings = {
   sidebarWidth: 280,
   vimMode: false,
   showFileIcons: true,
+  favorites: [],
 };
 
 /** Migrate old separate keys into the single blob. */
@@ -79,4 +81,62 @@ export function loadSettings(): Settings {
 
 export function saveSettings(settings: Settings): void {
   localStorage.setItem(KEY, JSON.stringify(settings));
+}
+
+// ─── Favorites helpers ──────────────────────────────────────────────────────
+
+export function toggleFavorite(path: string): string[] {
+  const s = loadSettings();
+  const idx = s.favorites.indexOf(path);
+  if (idx === -1) {
+    s.favorites.push(path);
+  } else {
+    s.favorites.splice(idx, 1);
+  }
+  saveSettings(s);
+  return s.favorites;
+}
+
+export function isFavorite(path: string): boolean {
+  return loadSettings().favorites.includes(path);
+}
+
+export function updateFavoritePath(oldPath: string, newPath: string): void {
+  const s = loadSettings();
+  let changed = false;
+  for (let i = 0; i < s.favorites.length; i++) {
+    if (s.favorites[i] === oldPath) {
+      s.favorites[i] = newPath;
+      changed = true;
+    }
+  }
+  if (changed) saveSettings(s);
+}
+
+export function removeFavorite(path: string): void {
+  const s = loadSettings();
+  const idx = s.favorites.indexOf(path);
+  if (idx !== -1) {
+    s.favorites.splice(idx, 1);
+    saveSettings(s);
+  }
+}
+
+export function updateFavoritesPrefix(oldPrefix: string, newPrefix: string): void {
+  const s = loadSettings();
+  let changed = false;
+  for (let i = 0; i < s.favorites.length; i++) {
+    if (s.favorites[i] === oldPrefix || s.favorites[i].startsWith(oldPrefix + '/')) {
+      s.favorites[i] = newPrefix + s.favorites[i].slice(oldPrefix.length);
+      changed = true;
+    }
+  }
+  if (changed) saveSettings(s);
+}
+
+export function removeFavoritesWithPrefix(prefix: string): void {
+  const s = loadSettings();
+  const len = s.favorites.length;
+  s.favorites = s.favorites.filter(p => p !== prefix && !p.startsWith(prefix + '/'));
+  if (s.favorites.length !== len) saveSettings(s);
 }

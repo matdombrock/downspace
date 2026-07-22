@@ -31,6 +31,7 @@ Most note-taking apps either live in the cloud, require a database, or lock your
 - **Internal links** — `[Pasta](Recipes/Pasta)` navigates within the app. URL updates via `pushState`. Back/forward browser buttons work.
 - **Image support** — `![bot](/f/boticon2.png)` serves files from the `notes/` directory via the `/f/` prefix.
 - **File upload** — drag or select files into any directory via the sidebar.
+- **Favorites** — star notes to mark them as favorites. Toggle from the header action bar; filter the sidebar to show only favorites. Stored in localStorage alongside settings. Favorite paths update automatically on rename and are removed on delete.
 - **10 themes** — Light, Dark, Dark Modern, Dark OLED, Gruvbox, Everforest, Catppuccin, Nord, Tokyo Night, Dracula.
 - **Settings** — toggle Vim mode, toggle file icons, change sort order. Settings are stored as a single JSON blob in `localStorage`. Export and import settings.
 - **Resizable sidebar** — drag the divider to resize. Width is remembered in settings.

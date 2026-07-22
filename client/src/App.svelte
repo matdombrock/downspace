@@ -7,7 +7,7 @@
   import Shell from './lib/Shell.svelte';
   import type { TreeNode, Note } from './lib/types';
   import { fetchTree, fetchNote, saveNote, deleteNote as apiDeleteNote, createDirectory, deleteDirectory as apiDeleteDirectory, moveNote, moveDirectory, deleteFile as apiDeleteFile, moveFile as apiMoveFile } from './lib/api';
-  import { loadSettings, saveSettings } from './lib/settings';
+  import { loadSettings, saveSettings, toggleFavorite, updateFavoritePath, removeFavorite, updateFavoritesPrefix, removeFavoritesWithPrefix } from './lib/settings';
   import type { Theme } from './lib/settings';
   import themes, { applyThemeById } from './lib/themes';
 
@@ -20,6 +20,16 @@
   let showShell = $state(false);
   let loading = $state(false);
   let error = $state<string | null>(null);
+
+  // ─── Favorites ────────────────────────────────────────────────────────────
+
+  let favorites = $state<string[]>(loadSettings().favorites);
+  let currentNoteFav = $derived(selectedNote ? favorites.includes(selectedNote.path) : false);
+
+  function handleToggleFavorite() {
+    if (!selectedNote) return;
+    favorites = toggleFavorite(selectedNote.path);
+  }
 
   // ─── Lifecycle ──────────────────────────────────────────────────────────
 
@@ -158,6 +168,8 @@
     error = null;
     try {
       await apiDeleteNote(selectedNote.path);
+      removeFavorite(selectedNote.path);
+      favorites = loadSettings().favorites;
       selectedNote = null;
       editMode = false;
       window.history.replaceState({ note: '' }, '', '/');
@@ -172,10 +184,15 @@
     const newName = prompt('New name (without .md):', selectedNote.name);
     if (!newName || !newName.trim() || newName.trim() === selectedNote.name) return;
     const dir = selectedNote.directory ? selectedNote.directory + '/' : '';
+    const oldPath = selectedNote.path;
     const newPath = dir + newName.trim() + '.md';
     error = null;
-    moveNote(selectedNote.path, newPath)
-      .then(() => fetchNote(newPath))
+    moveNote(oldPath, newPath)
+      .then(() => {
+        updateFavoritePath(oldPath, newPath);
+        favorites = loadSettings().favorites;
+        return fetchNote(newPath);
+      })
       .then((note) => {
         selectedNote = note;
         window.history.replaceState({ note: newPath }, '', toUrlPath(newPath));
@@ -244,6 +261,8 @@
     error = null;
     moveDirectory(dirPath, newPath)
       .then(() => {
+        updateFavoritesPrefix(dirPath, newPath);
+        favorites = loadSettings().favorites;
         loadTree();
         if (selectedNote && selectedNote.path.startsWith(dirPath + '/')) {
           const relativePath = selectedNote.path.slice(dirPath.length + 1);
@@ -296,6 +315,8 @@
     error = null;
     apiDeleteNote(notePath)
       .then(() => {
+        removeFavorite(notePath);
+        favorites = loadSettings().favorites;
         if (selectedNote?.path === notePath) {
           selectedNote = null;
           editMode = false;
@@ -315,6 +336,8 @@
     error = null;
     moveNote(notePath, newPath)
       .then(() => {
+        updateFavoritePath(notePath, newPath);
+        favorites = loadSettings().favorites;
         if (selectedNote?.path === notePath) {
           return fetchNote(newPath).then(note => {
             selectedNote = note;
@@ -331,6 +354,8 @@
     error = null;
     apiDeleteDirectory(dirPath)
       .then(() => {
+        removeFavoritesWithPrefix(dirPath);
+        favorites = loadSettings().favorites;
         loadTree();
         if (selectedNote && selectedNote.path.startsWith(dirPath + '/')) {
           selectedNote = null;
@@ -353,6 +378,9 @@
       {#if selectedNote && !editMode}
         <button class="btn" onclick={handleEdit} title="Edit"><i class="fas fa-pen-to-square"></i></button>
         <button class="btn" onclick={handleRenameNote} title="Rename"><i class="fas fa-tag"></i></button>
+        <button class="btn fav-btn" class:favorited={currentNoteFav} onclick={handleToggleFavorite} title={currentNoteFav ? 'Remove from favorites' : 'Add to favorites'}>
+          <i class="fa{currentNoteFav ? 's' : 'r'} fa-star"></i>
+        </button>
         <button class="btn" onclick={handleCopyNote} title="Copy to clipboard"><i class="fas fa-copy"></i></button>
         <button class="btn" onclick={handleDelete} title="Delete"><i class="fas fa-trash-alt"></i></button>
       {/if}
@@ -375,6 +403,7 @@
       {tree}
       {showSettings}
       {theme}
+      {favorites}
       selectedNotePath={selectedNote?.path ?? null}
       onSelectNote={handleSelectNote}
       onNewNote={handleNewNote}
@@ -476,6 +505,12 @@
 
   .hamburger {
     display: none;
+  }
+
+  .fav-btn.favorited {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--bg-tertiary);
   }
 
   .sidebar {
