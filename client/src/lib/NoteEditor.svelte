@@ -21,7 +21,7 @@
     closeBracketsKeymap, completionKeymap
   } from '@codemirror/autocomplete';
   import { lintKeymap } from '@codemirror/lint';
-  import { vim } from '@replit/codemirror-vim';
+  import { vim, Vim } from '@replit/codemirror-vim';
   import { oneDark, oneDarkTheme, oneDarkHighlightStyle } from '@codemirror/theme-one-dark';
   import { loadSettings } from './settings';
   import type { Note } from './types';
@@ -36,6 +36,25 @@
 
   let editorRef: HTMLDivElement;
   let editorView: EditorView;
+
+  // ─── Clipboard yank (install once) ────────────────────────────────────
+
+  let clipboardYankPatched = false;
+
+  function setupClipboardYank() {
+    if (clipboardYankPatched) return;
+    clipboardYankPatched = true;
+
+    const rc = Vim.getRegisterController();
+    const original = rc.pushText.bind(rc);
+    rc.pushText = function (registerName, operator, text, linewise, blockwise) {
+      original(registerName, operator, text, linewise, blockwise);
+      // When yanking without an explicit register, also copy to system clipboard
+      if (operator === 'yank' && !registerName) {
+        navigator.clipboard.writeText(text);
+      }
+    };
+  }
 
   // ─── Editor theme ─────────────────────────────────────────────────────
 
@@ -93,6 +112,7 @@
     // Vim mode
     if (s.vimMode) {
       extensions.push(vim());
+      setupClipboardYank();
     }
 
     // Theme
