@@ -54,7 +54,7 @@
   let fileInput: HTMLInputElement;
   let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
-  function onDirContextMenu(el: HTMLElement, clientY?: number) {
+  function onDirContextMenu(el: HTMLElement, _clientY?: number) {
     onContextMenu(el, [
       { label: 'New Note', icon: 'plus', action: () => onNewNote(dir.path) },
       { label: 'New Directory', icon: 'folder-plus', action: () => onNewDirectory(dir.path) },
@@ -110,19 +110,19 @@
 
   async function handleUpload(dirPath: string) {
     fileInput.click();
-    (fileInput as any)._uploadDir = dirPath;
+    fileInput.dataset.uploadDir = dirPath;
   }
 
   async function onFilesSelected(e: Event) {
     const input = e.target as HTMLInputElement;
-    const dir = (input as any)._uploadDir || '';
+    const dir = input.dataset.uploadDir || '';
     const files = input.files;
     if (!files || files.length === 0) return;
     try {
       await uploadFiles(files, dir);
       onUpload();
-    } catch (err: any) {
-      alert('Upload failed: ' + err.message);
+    } catch (err: unknown) {
+      alert('Upload failed: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       input.value = '';
     }
@@ -158,7 +158,6 @@
 </script>
 
 <div class="tree-item">
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="tree-dir" role="button" tabindex="0" aria-expanded={expanded} onclick={toggle} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}
     oncontextmenu={(e) => { e.preventDefault(); onDirContextMenu(e.currentTarget, e.clientY); }}
     ontouchstart={(e) => onDirTouchStart(e.currentTarget, e.touches[0].clientY)}

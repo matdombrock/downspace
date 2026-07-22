@@ -151,7 +151,7 @@
   async function handleUpload(dirPath: string) {
     fileInput.click();
     // Store dirPath for the change handler
-    (fileInput as any)._uploadDir = dirPath;
+    fileInput.dataset.uploadDir = dirPath;
   }
 
   async function handleRootMove(srcPath: string, targetDir: string) {
@@ -162,15 +162,15 @@
     } catch {
       try {
         await moveFile(srcPath, destPath);
-      } catch (err: any) {
-        alert('Move failed: ' + err.message);
+      } catch (err: unknown) {
+        alert('Move failed: ' + (err instanceof Error ? err.message : String(err)));
       }
     }
   }
 
   async function onFilesSelected(e: Event) {
     const input = e.target as HTMLInputElement;
-    const dir = (input as any)._uploadDir || '';
+    const dir = input.dataset.uploadDir || '';
     const files = input.files;
     if (!files || files.length === 0) return;
     try {
@@ -186,8 +186,8 @@
       // But Svelte 5 uses callback props. Let me just add onUpload to Props.
       // For now, I'll use a simpler approach and reload the page.
       window.location.reload();
-    } catch (err: any) {
-      alert('Upload failed: ' + err.message);
+    } catch (err: unknown) {
+      alert('Upload failed: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       input.value = '';
     }
@@ -638,13 +638,12 @@
   </div>
 
   {#if contextMenu}
-    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
     <div
       class="context-menu"
       style="left: {contextMenu.x}px; top: {contextMenu.y}px;"
       role="menu"
     >
-      {#each contextMenu.items as item}
+      {#each contextMenu.items as item (item.label)}
         <button class="context-menu-item" role="menuitem" onclick={() => { item.action(); closeContextMenu(); }}>
           <i class="fas fa-{item.icon}"></i>
           <span>{item.label}</span>
@@ -653,6 +652,7 @@
     </div>
   {/if}
 
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
     class="sidebar-resize-handle"
     onmousedown={(e) => {

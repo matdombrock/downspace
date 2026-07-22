@@ -32,8 +32,8 @@
       stdout = data.stdout || '';
       stderr = data.stderr || '';
       exitCode = data.exitCode;
-    } catch (e: any) {
-      error = e.message;
+    } catch (e: unknown) {
+      error = e instanceof Error ? e.message : String(e);
     } finally {
       running = false;
     }

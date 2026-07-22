@@ -22,7 +22,7 @@
   } from '@codemirror/autocomplete';
   import { lintKeymap } from '@codemirror/lint';
   import { vim, Vim } from '@replit/codemirror-vim';
-  import { oneDark, oneDarkTheme, oneDarkHighlightStyle } from '@codemirror/theme-one-dark';
+  import { oneDark, oneDarkTheme } from '@codemirror/theme-one-dark';
   import { loadSettings } from './settings';
   import type { Note } from './types';
 

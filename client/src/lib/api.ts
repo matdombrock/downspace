@@ -81,7 +81,7 @@ export async function moveFile(path: string, newPath: string): Promise<void> {
 
 export async function uploadFiles(files: FileList | File[], dir: string = ''): Promise<string[]> {
   const formData = new FormData();
-  for (const file of files) {
+  for (const file of Array.from(files)) {
     formData.append('files', file);
   }
   const params = dir ? `?dir=${encodeURIComponent(dir)}` : '';

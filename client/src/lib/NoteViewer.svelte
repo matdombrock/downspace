@@ -1,5 +1,6 @@
 <script lang="ts">
   import { marked } from 'marked';
+  import { get } from 'svelte/store';
   import { settingsStore } from './settings';
   import type { Note } from './types';
   import mermaid from 'mermaid';
@@ -24,7 +25,7 @@
     onNavigateToNote: (path: string) => void;
   }
 
-  let { note, onEdit, onDelete, onNavigateToNote }: Props = $props();
+  let { note, onEdit, onNavigateToNote }: Props = $props();
 
   // Resolve a path relative to the current note's directory.
   // Returns an absolute path from the notes root (no leading slash).
@@ -107,7 +108,7 @@
   // Post-process rendered HTML: re-execute <script> tags, render math, render mermaid
   $effect(() => {
     const s = $settingsStore;
-    rendered;
+    void rendered;
     if (!viewerRef) return;
 
     // Re-execute <script> tags (innerHTML skips them)
@@ -181,7 +182,7 @@
   // ─── Keybindings (view mode only) ──────────────────────────────────────
 
   function onKeydown(e: KeyboardEvent) {
-    const s = $settingsStore;
+    const s = get(settingsStore);
     if (!s.viewerKeybindings) return;
 
     if (e.ctrlKey || e.metaKey) {
@@ -216,7 +217,6 @@
     <span class="viewer-path">{note.directory ? note.directory + '/' : ''}{note.name}.md</span>
     <span class="viewer-modified">Modified: {new Date(note.modified).toLocaleString()}</span>
   </div>
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div role="presentation" class="markdown viewer-content" bind:this={viewerRef} onclick={handleClick}>
     {@html rendered}
   </div>

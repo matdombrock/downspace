@@ -1,20 +1,39 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import Sidebar from './lib/Sidebar.svelte';
-  import NoteViewer from './lib/NoteViewer.svelte';
-  import NoteEditor from './lib/NoteEditor.svelte';
-  import ThemeToggle from './lib/ThemeToggle.svelte';
-  import Shell from './lib/Shell.svelte';
-  import type { TreeNode, Note } from './lib/types';
-  import { fetchTree, fetchNote, saveNote, deleteNote as apiDeleteNote, createDirectory, deleteDirectory as apiDeleteDirectory, moveNote, moveDirectory, deleteFile as apiDeleteFile, moveFile as apiMoveFile } from './lib/api';
-  import { loadSettings, saveSettings, toggleFavorite, updateFavoritePath, removeFavorite, updateFavoritesPrefix, removeFavoritesWithPrefix } from './lib/settings';
-  import type { Theme } from './lib/settings';
-  import themes, { applyThemeById } from './lib/themes';
+  import { onMount } from "svelte";
+  import Sidebar from "./lib/Sidebar.svelte";
+  import NoteViewer from "./lib/NoteViewer.svelte";
+  import NoteEditor from "./lib/NoteEditor.svelte";
+  import ThemeToggle from "./lib/ThemeToggle.svelte";
+  import Shell from "./lib/Shell.svelte";
+  import type { TreeNode, Note } from "./lib/types";
+  import {
+    fetchTree,
+    fetchNote,
+    saveNote,
+    deleteNote as apiDeleteNote,
+    createDirectory,
+    deleteDirectory as apiDeleteDirectory,
+    moveNote,
+    moveDirectory,
+    deleteFile as apiDeleteFile,
+    moveFile as apiMoveFile,
+  } from "./lib/api";
+  import {
+    loadSettings,
+    saveSettings,
+    toggleFavorite,
+    updateFavoritePath,
+    removeFavorite,
+    updateFavoritesPrefix,
+    removeFavoritesWithPrefix,
+  } from "./lib/settings";
+  import type { Theme } from "./lib/settings";
+  import themes, { applyThemeById } from "./lib/themes";
 
   let tree = $state<TreeNode[]>([]);
   let selectedNote = $state<Note | null>(null);
   let editMode = $state(false);
-  let theme = $state<Theme>('light');
+  let theme = $state<Theme>("light");
   let sidebarOpen = $state(false);
   let showSettings = $state(false);
   let showShell = $state(false);
@@ -45,7 +64,9 @@
   // ─── Favorites ────────────────────────────────────────────────────────────
 
   let favorites = $state<string[]>(loadSettings().favorites);
-  let currentNoteFav = $derived(selectedNote ? favorites.includes(selectedNote.path) : false);
+  let currentNoteFav = $derived(
+    selectedNote ? favorites.includes(selectedNote.path) : false,
+  );
 
   function handleToggleFavorite() {
     if (!selectedNote) return;
@@ -54,26 +75,26 @@
 
   // ─── Lifecycle ──────────────────────────────────────────────────────────
 
-  onMount(async () => {
+  onMount(() => {
     theme = loadSettings().theme;
     applyTheme(theme);
-    await loadTree();
 
-    // Check URL for note to load (internal link navigation or direct visit)
-    const urlPath = window.location.pathname.slice(1).replace(/\/$/, '');
-    if (urlPath) {
-      navigateToNoteFromPath(decodeURIComponent(urlPath));
-    }
+    const init = async () => {
+      await loadTree();
+      const urlPath = window.location.pathname.slice(1).replace(/\/$/, "");
+      if (urlPath) {
+        navigateToNoteFromPath(decodeURIComponent(urlPath));
+      }
+    };
+    init();
 
-    // Handle back/forward navigation
-    window.addEventListener('popstate', onPopState);
-    return () => window.removeEventListener('popstate', onPopState);
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
   });
 
   // ─── Theme ──────────────────────────────────────────────────────────────
 
-  const THEME_CYCLE = themes.map(t => t.id) as Theme[];
-  type Theme = typeof THEME_CYCLE[number];
+  const THEME_CYCLE = themes.map((t) => t.id) as Theme[];
 
   function applyTheme(t: Theme) {
     applyThemeById(t);
@@ -101,20 +122,27 @@
   async function loadTree() {
     try {
       tree = await fetchTree();
-    } catch (e: any) {
-      error = e.message;
+    } catch (e: unknown) {
+      error = e instanceof Error ? e.message : String(e);
     }
   }
 
   // ─── URL ↔ note path helpers ────────────────────────────────────────────
 
   function toUrlPath(notePath: string): string {
-    return '/' + notePath.replace(/\.md$/, '').split('/').map(s => encodeURIComponent(s)).join('/');
+    return (
+      "/" +
+      notePath
+        .replace(/\.md$/, "")
+        .split("/")
+        .map((s) => encodeURIComponent(s))
+        .join("/")
+    );
   }
 
   /** Try to load a note from a URL path segment. Returns true if found. */
   async function navigateToNoteFromPath(path: string): Promise<boolean> {
-    const notePath = path.endsWith('.md') ? path : path + '.md';
+    const notePath = path.endsWith(".md") ? path : path + ".md";
     try {
       selectedNote = await fetchNote(notePath);
       editMode = false;
@@ -126,7 +154,7 @@
   }
 
   function onPopState() {
-    const path = window.location.pathname.slice(1).replace(/\/$/, '');
+    const path = window.location.pathname.slice(1).replace(/\/$/, "");
     if (path) {
       navigateToNoteFromPath(decodeURIComponent(path));
     } else {
@@ -144,9 +172,9 @@
       selectedNote = await fetchNote(notePath);
       editMode = false;
       sidebarOpen = false;
-      window.history.replaceState({ note: notePath }, '', toUrlPath(notePath));
-    } catch (e: any) {
-      error = e.message;
+      window.history.replaceState({ note: notePath }, "", toUrlPath(notePath));
+    } catch (e: unknown) {
+      error = e instanceof Error ? e.message : String(e);
     } finally {
       loading = false;
     }
@@ -156,13 +184,13 @@
     loading = true;
     error = null;
     try {
-      const notePath = path.endsWith('.md') ? path : path + '.md';
+      const notePath = path.endsWith(".md") ? path : path + ".md";
       selectedNote = await fetchNote(notePath);
       editMode = false;
       sidebarOpen = false;
-      window.history.pushState({ note: notePath }, '', toUrlPath(notePath));
-    } catch (e: any) {
-      error = e.message;
+      window.history.pushState({ note: notePath }, "", toUrlPath(notePath));
+    } catch (e: unknown) {
+      error = e instanceof Error ? e.message : String(e);
     } finally {
       loading = false;
     }
@@ -178,14 +206,15 @@
       selectedNote = await fetchNote(selectedNote.path);
       editMode = false;
       await loadTree();
-    } catch (e: any) {
-      error = e.message;
+    } catch (e: unknown) {
+      error = e instanceof Error ? e.message : String(e);
     }
   }
 
   async function handleDelete() {
     if (!selectedNote) return;
-    if (!confirm(`Delete "${selectedNote.title || selectedNote.name}"?`)) return;
+    if (!confirm(`Delete "${selectedNote.title || selectedNote.name}"?`))
+      return;
     error = null;
     try {
       await apiDeleteNote(selectedNote.path);
@@ -193,20 +222,21 @@
       favorites = loadSettings().favorites;
       selectedNote = null;
       editMode = false;
-      window.history.replaceState({ note: '' }, '', '/');
+      window.history.replaceState({ note: "" }, "", "/");
       await loadTree();
-    } catch (e: any) {
-      error = e.message;
+    } catch (e: unknown) {
+      error = e instanceof Error ? e.message : String(e);
     }
   }
 
   function handleRenameNote() {
     if (!selectedNote) return;
-    const newName = prompt('New name (without .md):', selectedNote.name);
-    if (!newName || !newName.trim() || newName.trim() === selectedNote.name) return;
-    const dir = selectedNote.directory ? selectedNote.directory + '/' : '';
+    const newName = prompt("New name (without .md):", selectedNote.name);
+    if (!newName || !newName.trim() || newName.trim() === selectedNote.name)
+      return;
+    const dir = selectedNote.directory ? selectedNote.directory + "/" : "";
     const oldPath = selectedNote.path;
-    const newPath = dir + newName.trim() + '.md';
+    const newPath = dir + newName.trim() + ".md";
     error = null;
     moveNote(oldPath, newPath)
       .then(() => {
@@ -216,17 +246,18 @@
       })
       .then((note) => {
         selectedNote = note;
-        window.history.replaceState({ note: newPath }, '', toUrlPath(newPath));
+        window.history.replaceState({ note: newPath }, "", toUrlPath(newPath));
         return loadTree();
       })
-      .catch((e: any) => { error = e.message; });
+      .catch((e: unknown) => {
+        error = e instanceof Error ? e.message : String(e);
+      });
   }
 
   function handleCopyNote() {
     if (!selectedNote) return;
     const text = selectedNote.content;
-    // Try the modern clipboard API first
-    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    if (navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
     } else {
       fallbackCopy(text);
@@ -240,6 +271,7 @@
     ta.style.opacity = '0';
     document.body.appendChild(ta);
     ta.select();
+    // @ts-expect-error document.execCommand is deprecated but serves as a fallback
     document.execCommand('copy');
     document.body.removeChild(ta);
   }
@@ -253,30 +285,42 @@
   }
 
   function handleNewNote(dirPath: string) {
-    const name = prompt('Note name:');
+    const name = prompt("Note name:");
     if (!name || !name.trim()) return;
-    const notePath = dirPath ? `${dirPath}/${name.trim()}.md` : `${name.trim()}.md`;
+    const notePath = dirPath
+      ? `${dirPath}/${name.trim()}.md`
+      : `${name.trim()}.md`;
     loading = true;
     error = null;
-    saveNote(notePath, '')
+    saveNote(notePath, "")
       .then(() => loadTree())
       .then(() => fetchNote(notePath))
       .then((note) => {
         selectedNote = note;
         editMode = true;
         sidebarOpen = false;
-        window.history.replaceState({ note: notePath }, '', toUrlPath(notePath));
+        window.history.replaceState(
+          { note: notePath },
+          "",
+          toUrlPath(notePath),
+        );
       })
-      .catch((e: any) => { error = e.message; })
-      .finally(() => { loading = false; });
+      .catch((e: unknown) => {
+        error = e instanceof Error ? e.message : String(e);
+      })
+      .finally(() => {
+        loading = false;
+      });
   }
 
   // ─── Directory CRUD ─────────────────────────────────────────────────────
 
   function handleRenameDirectory(dirPath: string) {
-    const oldName = dirPath.split('/').pop() || '';
-    const parent = dirPath.includes('/') ? dirPath.slice(0, dirPath.lastIndexOf('/')) : '';
-    const newName = prompt('New directory name:', oldName);
+    const oldName = dirPath.split("/").pop() || "";
+    const parent = dirPath.includes("/")
+      ? dirPath.slice(0, dirPath.lastIndexOf("/"))
+      : "";
+    const newName = prompt("New directory name:", oldName);
     if (!newName || !newName.trim() || newName.trim() === oldName) return;
     const newPath = parent ? `${parent}/${newName.trim()}` : newName.trim();
     error = null;
@@ -285,53 +329,65 @@
         updateFavoritesPrefix(dirPath, newPath);
         favorites = loadSettings().favorites;
         loadTree();
-        if (selectedNote && selectedNote.path.startsWith(dirPath + '/')) {
+        if (selectedNote && selectedNote.path.startsWith(dirPath + "/")) {
           const relativePath = selectedNote.path.slice(dirPath.length + 1);
-          fetchNote(newPath + '/' + relativePath).then(note => {
-            selectedNote = note;
-          }).catch(() => {
-            selectedNote = null;
-            editMode = false;
-            window.history.replaceState({ note: '' }, '', '/');
-          });
+          fetchNote(newPath + "/" + relativePath)
+            .then((note) => {
+              selectedNote = note;
+            })
+            .catch(() => {
+              selectedNote = null;
+              editMode = false;
+              window.history.replaceState({ note: "" }, "", "/");
+            });
         }
       })
-      .catch((e: any) => { error = e.message; });
+      .catch((e: unknown) => {
+        error = e instanceof Error ? e.message : String(e);
+      });
   }
 
   function handleNewDirectory(parentPath: string) {
-    const name = prompt('Directory name:');
+    const name = prompt("Directory name:");
     if (!name || !name.trim()) return;
     const dirPath = parentPath ? `${parentPath}/${name.trim()}` : name.trim();
     error = null;
     createDirectory(dirPath)
       .then(() => loadTree())
-      .catch((e: any) => { error = e.message; });
+      .catch((e: unknown) => {
+        error = e instanceof Error ? e.message : String(e);
+      });
   }
 
   function handleDeleteFile(filePath: string) {
-    const name = filePath.split('/').pop() || filePath;
+    const name = filePath.split("/").pop() || filePath;
     if (!confirm(`Delete "${name}"?`)) return;
     error = null;
     apiDeleteFile(filePath)
       .then(() => loadTree())
-      .catch((e: any) => { error = e.message; });
+      .catch((e: unknown) => {
+        error = e instanceof Error ? e.message : String(e);
+      });
   }
 
   function handleRenameFile(filePath: string) {
-    const oldName = filePath.split('/').pop() || '';
-    const dir = filePath.includes('/') ? filePath.slice(0, filePath.lastIndexOf('/')) : '';
-    const newName = prompt('New file name:', oldName);
+    const oldName = filePath.split("/").pop() || "";
+    const dir = filePath.includes("/")
+      ? filePath.slice(0, filePath.lastIndexOf("/"))
+      : "";
+    const newName = prompt("New file name:", oldName);
     if (!newName || !newName.trim() || newName.trim() === oldName) return;
     const newPath = dir ? `${dir}/${newName.trim()}` : newName.trim();
     error = null;
     apiMoveFile(filePath, newPath)
       .then(() => loadTree())
-      .catch((e: any) => { error = e.message; });
+      .catch((e: unknown) => {
+        error = e instanceof Error ? e.message : String(e);
+      });
   }
 
   function handleDeleteNoteInline(notePath: string) {
-    const name = notePath.split('/').pop()?.replace(/\.md$/, '') || notePath;
+    const name = notePath.split("/").pop()?.replace(/\.md$/, "") || notePath;
     if (!confirm(`Delete "${name}"?`)) return;
     error = null;
     apiDeleteNote(notePath)
@@ -341,33 +397,45 @@
         if (selectedNote?.path === notePath) {
           selectedNote = null;
           editMode = false;
-          window.history.replaceState({ note: '' }, '', '/');
+          window.history.replaceState({ note: "" }, "", "/");
         }
         return loadTree();
       })
-      .catch((e: any) => { error = e.message; });
+      .catch((e: unknown) => {
+        error = e instanceof Error ? e.message : String(e);
+      });
   }
 
   function handleRenameNoteInline(notePath: string) {
-    const name = notePath.split('/').pop()?.replace(/\.md$/, '') || '';
-    const dir = notePath.includes('/') ? notePath.slice(0, notePath.lastIndexOf('/')) : '';
-    const newName = prompt('New name (without .md):', name);
+    const name = notePath.split("/").pop()?.replace(/\.md$/, "") || "";
+    const dir = notePath.includes("/")
+      ? notePath.slice(0, notePath.lastIndexOf("/"))
+      : "";
+    const newName = prompt("New name (without .md):", name);
     if (!newName || !newName.trim() || newName.trim() === name) return;
-    const newPath = dir ? `${dir}/${newName.trim()}.md` : `${newName.trim()}.md`;
+    const newPath = dir
+      ? `${dir}/${newName.trim()}.md`
+      : `${newName.trim()}.md`;
     error = null;
     moveNote(notePath, newPath)
       .then(() => {
         updateFavoritePath(notePath, newPath);
         favorites = loadSettings().favorites;
         if (selectedNote?.path === notePath) {
-          return fetchNote(newPath).then(note => {
+          return fetchNote(newPath).then((note) => {
             selectedNote = note;
-            window.history.replaceState({ note: newPath }, '', toUrlPath(newPath));
+            window.history.replaceState(
+              { note: newPath },
+              "",
+              toUrlPath(newPath),
+            );
           });
         }
       })
       .then(() => loadTree())
-      .catch((e: any) => { error = e.message; });
+      .catch((e: unknown) => {
+        error = e instanceof Error ? e.message : String(e);
+      });
   }
 
   function handleDeleteDirectory(dirPath: string) {
@@ -378,35 +446,61 @@
         removeFavoritesWithPrefix(dirPath);
         favorites = loadSettings().favorites;
         loadTree();
-        if (selectedNote && selectedNote.path.startsWith(dirPath + '/')) {
+        if (selectedNote && selectedNote.path.startsWith(dirPath + "/")) {
           selectedNote = null;
           editMode = false;
-          window.history.replaceState({ note: '' }, '', '/');
+          window.history.replaceState({ note: "" }, "", "/");
         }
       })
-      .catch((e: any) => { error = e.message; });
+      .catch((e: unknown) => {
+        error = e instanceof Error ? e.message : String(e);
+      });
   }
 </script>
 
-<div class="app-layout" ontouchstart={handleTouchStart} ontouchend={handleTouchEnd}>
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div
+  class="app-layout"
+  ontouchstart={handleTouchStart}
+  ontouchend={handleTouchEnd}
+>
   <!-- Header -->
   <header class="app-header">
-    <button class="btn-icon hamburger" onclick={() => sidebarOpen = !sidebarOpen} aria-label="Toggle sidebar">
+    <button
+      class="btn-icon hamburger"
+      onclick={() => (sidebarOpen = !sidebarOpen)}
+      aria-label="Toggle sidebar"
+    >
       <i class="fas fa-bars fa-lg"></i>
     </button>
     <span class="logo"><i class="fas fa-rocket"></i> downspace</span>
     <div class="header-actions">
       {#if selectedNote && !editMode}
-        <button class="btn" onclick={handleEdit} title="Edit"><i class="fas fa-pen-to-square"></i></button>
-        <button class="btn" onclick={handleRenameNote} title="Rename"><i class="fas fa-tag"></i></button>
-        <button class="btn fav-btn" class:favorited={currentNoteFav} onclick={handleToggleFavorite} title={currentNoteFav ? 'Remove from favorites' : 'Add to favorites'}>
+        <button class="btn" onclick={handleEdit} title="Edit"
+          ><i class="fas fa-pen-to-square"></i></button
+        >
+        <button class="btn" onclick={handleRenameNote} title="Rename"
+          ><i class="fas fa-tag"></i></button
+        >
+        <button
+          class="btn fav-btn"
+          class:favorited={currentNoteFav}
+          onclick={handleToggleFavorite}
+          title={currentNoteFav ? "Remove from favorites" : "Add to favorites"}
+        >
           <i class="fa{currentNoteFav ? 's' : 'r'} fa-star"></i>
         </button>
-        <button class="btn" onclick={handleCopyNote} title="Copy to clipboard"><i class="fas fa-copy"></i></button>
-        <button class="btn" onclick={handleDelete} title="Delete"><i class="fas fa-trash-alt"></i></button>
+        <button class="btn" onclick={handleCopyNote} title="Copy to clipboard"
+          ><i class="fas fa-copy"></i></button
+        >
+        <button class="btn" onclick={handleDelete} title="Delete"
+          ><i class="fas fa-trash-alt"></i></button
+        >
       {/if}
       {#if selectedNote && editMode}
-        <button class="btn" onclick={handleCancelEdit} title="Cancel"><i class="fas fa-times"></i></button>
+        <button class="btn" onclick={handleCancelEdit} title="Cancel"
+          ><i class="fas fa-times"></i></button
+        >
       {/if}
       <ThemeToggle {theme} ontoggle={toggleTheme} />
     </div>
@@ -414,8 +508,15 @@
 
   <!-- Overlay for mobile sidebar -->
   {#if sidebarOpen}
-    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-    <div class="sidebar-overlay" onclick={() => sidebarOpen = false} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') sidebarOpen = false; }} role="button" tabindex="-1"></div>
+    <div
+      class="sidebar-overlay"
+      onclick={() => (sidebarOpen = false)}
+      onkeydown={(e) => {
+        if (e.key === "Enter" || e.key === " ") sidebarOpen = false;
+      }}
+      role="button"
+      tabindex="-1"
+    ></div>
   {/if}
 
   <!-- Sidebar -->
@@ -436,14 +537,18 @@
       onRenameNote={handleRenameNoteInline}
       onDeleteNote={handleDeleteNoteInline}
       onUpload={loadTree}
-      onToggleSettings={() => showSettings = !showSettings}
-      onToggleShell={() => showShell = !showShell}
+      onToggleSettings={() => (showSettings = !showSettings)}
+      onToggleShell={() => (showShell = !showShell)}
       onSetTheme={setTheme}
     />
   </aside>
 
   <!-- Main content -->
-  <main class="main-content" class:edit-mode={editMode} class:shell-open={showShell}>
+  <main
+    class="main-content"
+    class:edit-mode={editMode}
+    class:shell-open={showShell}
+  >
     {#if error}
       <div class="error-bar">{error}</div>
     {/if}
@@ -456,7 +561,9 @@
       <div class="empty-state">Loading...</div>
     {:else if !selectedNote}
       <div class="empty-state">
-        <div class="empty-icon"><i class="fa-solid fa-user-astronaut fa-4x"></i></div>
+        <div class="empty-icon">
+          <i class="fa-solid fa-user-astronaut fa-4x"></i>
+        </div>
         <h2>downspace</h2>
         <p>Select a note from the sidebar, or create a new one.</p>
       </div>
@@ -632,7 +739,7 @@
       display: block;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.4);
+      background: rgba(0, 0, 0, 0.4);
       z-index: 25;
     }
 
