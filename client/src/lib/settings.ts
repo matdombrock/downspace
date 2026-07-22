@@ -25,6 +25,7 @@ export interface Settings {
   favorites: string[];
   markdownFlavor: MarkdownFlavor;
   markdownBreaks: boolean;
+  inlineMath: boolean;
 }
 
 import { writable } from 'svelte/store';
@@ -44,6 +45,7 @@ export const DEFAULTS: Settings = {
   favorites: [],
   markdownFlavor: 'gfm',
   markdownBreaks: false,
+  inlineMath: false,
 };
 
 /** Migrate old separate keys into the single blob. */

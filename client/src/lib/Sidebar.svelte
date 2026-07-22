@@ -65,6 +65,7 @@
   let completionsEnabled = $state(_settings.completions);
   let markdownFlavor = $state<'default' | 'gfm'>(_settings.markdownFlavor);
   let markdownBreaksEnabled = $state(_settings.markdownBreaks);
+  let inlineMathEnabled = $state(_settings.inlineMath);
   let collapseKey = $state(0);
 
   let fileInput: HTMLInputElement;
@@ -443,6 +444,16 @@
       }}>
         <i class="fas fa-text-slash"></i>
         <span>Line breaks {markdownBreaksEnabled ? 'on' : 'off'}</span>
+      </button>
+
+      <button class="settings-action" onclick={() => {
+        inlineMathEnabled = !inlineMathEnabled;
+        const s = loadSettings();
+        s.inlineMath = inlineMathEnabled;
+        saveSettings(s);
+      }}>
+        <i class="fas fa-superscript"></i>
+        <span>Render inline math {inlineMathEnabled ? 'on' : 'off'}</span>
       </button>
 
       <div class="settings-divider"></div>

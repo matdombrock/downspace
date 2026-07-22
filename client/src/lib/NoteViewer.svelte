@@ -3,6 +3,9 @@
   import { settingsStore } from './settings';
   import type { Note } from './types';
   import mermaid from 'mermaid';
+  import 'katex/dist/katex.min.css';
+  import katex from 'katex';
+  import renderMathInElement from 'katex/dist/contrib/auto-render.mjs';
 
   let mermaidInited = false;
   function ensureMermaid(theme: string) {
@@ -101,7 +104,7 @@
     });
   });
 
-  // Post-process rendered HTML: re-execute <script> tags and render mermaid
+  // Post-process rendered HTML: re-execute <script> tags, render math, render mermaid
   $effect(() => {
     const s = $settingsStore;
     rendered;
@@ -115,28 +118,56 @@
       old.replaceWith(el);
     }
 
-    // Render mermaid diagrams
-    const codeBlocks = viewerRef.querySelectorAll('pre > code.language-mermaid');
-    if (codeBlocks.length === 0) return;
+    // ─── LaTeX ──────────────────────────────────────────────────────────
+
+    // 1. Always render ```math / ```latex fenced code blocks
+    for (const code of viewerRef.querySelectorAll('pre > code.language-math, pre > code.language-latex')) {
+      const pre = code.parentElement!;
+      const source = code.textContent || '';
+      const div = document.createElement('div');
+      try {
+        katex.render(source, div, { displayMode: true, throwOnError: false });
+      } catch {
+        div.textContent = source;
+      }
+      pre.replaceWith(div);
+    }
+
+    // 2. Render inline $...$ / $$...$$ math (only when enabled)
+    if (s.inlineMath) {
+      try {
+        renderMathInElement(viewerRef, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+          ],
+          throwOnError: false,
+        });
+      } catch {}
+    }
+
+    // ─── Mermaid ─────────────────────────────────────────────────────────
 
     // Remove any previously rendered mermaid elements
     for (const old of viewerRef.querySelectorAll('.mermaid')) {
       old.remove();
     }
 
-    // Initialize mermaid with the correct theme
-    ensureMermaid(s.theme);
+    const mermaidBlocks = viewerRef.querySelectorAll('pre > code.language-mermaid');
+    if (mermaidBlocks.length > 0) {
+      ensureMermaid(s.theme);
 
-    for (const code of codeBlocks) {
-      const pre = code.parentElement!;
-      const source = code.textContent || '';
-      const preMermaid = document.createElement('pre');
-      preMermaid.className = 'mermaid';
-      preMermaid.textContent = source;
-      pre.replaceWith(preMermaid);
+      for (const code of mermaidBlocks) {
+        const pre = code.parentElement!;
+        const source = code.textContent || '';
+        const preMermaid = document.createElement('pre');
+        preMermaid.className = 'mermaid';
+        preMermaid.textContent = source;
+        pre.replaceWith(preMermaid);
+      }
+
+      mermaid.run({ querySelector: '.mermaid' }).catch(() => {});
     }
-
-    mermaid.run({ querySelector: '.mermaid' }).catch(() => {});
   });
 
   function handleClick(e: MouseEvent) {

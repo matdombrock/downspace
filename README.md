@@ -33,8 +33,9 @@ Most note-taking apps either live in the cloud, require a database, or lock your
 - **File upload** — drag or select files into any directory via the sidebar.
 - **Favorites** — star notes to mark them as favorites. Toggle from the header action bar; filter the sidebar to show only favorites. Stored in localStorage alongside settings. Favorite paths update automatically on rename and are removed on delete.
 - **10 themes** — Light, Dark, Dark Modern, Dark OLED, Gruvbox, Everforest, Catppuccin, Nord, Tokyo Night, Dracula.
+- **LaTeX math** — ` ```math ` / ` ```latex ` code blocks rendered via KaTeX (always on). Inline `$...$` / `$$...$$` math via auto-render (opt-in, disabled by default to avoid `$` conflicts).
 - **Mermaid diagrams** — render flowcharts, sequence diagrams, Gantt charts, and more using `` ```mermaid `` fenced code blocks. Theme-aware (light/dark).
-- **Markdown rendering** — view renders markdown via `marked` with configurable flavor (Default or GFM), optional line-break rendering (`breaks`), and GitHub-style alert blocks (`[!NOTE]`, `[!TIP]`, etc.). See [`gfm-alerts.md`](./docs/gfm-alerts.md).
+- **Markdown rendering** — view renders markdown via `marked` with configurable flavor (Default or GFM), optional line-break rendering (`breaks`), GitHub-style alert blocks (`[!NOTE]`, `[!TIP]`, etc.), Mermaid diagrams, and LaTeX math. See [`docs/gfm-alerts.md`](./docs/gfm-alerts.md) and [`docs/diagrams-and-math.md`](./docs/diagrams-and-math.md).
 - **Editor options** — spell check, line numbers, syntax highlighting, autocompletions, and Vim mode all configurable from Settings.
 - **Settings** — toggle Vim mode, toggle file icons, change sort order. Settings are stored as a single JSON blob in `localStorage`. Export and import settings.
 - **Resizable sidebar** — drag the divider to resize. Width is remembered in settings.
