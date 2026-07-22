@@ -21,6 +21,27 @@
   let loading = $state(false);
   let error = $state<string | null>(null);
 
+  // ─── Swipe to open sidebar (mobile) ──────────────────────────────────────
+
+  let touchStartX = $state(0);
+  let touchStartY = $state(0);
+
+  function handleTouchStart(e: TouchEvent) {
+    if (editMode || sidebarOpen) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }
+
+  function handleTouchEnd(e: TouchEvent) {
+    if (editMode || sidebarOpen) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    // Swipe right: at least 60px rightward, and more horizontal than vertical
+    if (dx > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      sidebarOpen = true;
+    }
+  }
+
   // ─── Favorites ────────────────────────────────────────────────────────────
 
   let favorites = $state<string[]>(loadSettings().favorites);
@@ -367,7 +388,7 @@
   }
 </script>
 
-<div class="app-layout">
+<div class="app-layout" ontouchstart={handleTouchStart} ontouchend={handleTouchEnd}>
   <!-- Header -->
   <header class="app-header">
     <button class="btn-icon hamburger" onclick={() => sidebarOpen = !sidebarOpen} aria-label="Toggle sidebar">

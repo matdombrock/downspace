@@ -37,7 +37,7 @@ Most note-taking apps either live in the cloud, require a database, or lock your
 - **Editor options** — spell check, line numbers, syntax highlighting, autocompletions, and Vim mode all configurable from Settings.
 - **Settings** — toggle Vim mode, toggle file icons, change sort order. Settings are stored as a single JSON blob in `localStorage`. Export and import settings.
 - **Resizable sidebar** — drag the divider to resize. Width is remembered in settings.
-- **Responsive** — hamburger sidebar on mobile, scrollable header actions.
+- **Responsive** — hamburger sidebar on mobile, swipe-right gesture to open sidebar (disabled in edit mode), scrollable header actions.
 - **SPA routing** — direct URLs like `/Recipes/Pasta` load the correct note. Static files at `/f/...` don't conflict with the SPA router.
 
 ## Getting Started
