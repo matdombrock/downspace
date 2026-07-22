@@ -16,6 +16,10 @@ export interface Settings {
   sort: SortMode;
   sidebarWidth: number;
   vimMode: boolean;
+  spellcheck: boolean;
+  lineNumbers: boolean;
+  syntaxHighlight: boolean;
+  completions: boolean;
   showFileIcons: boolean;
   favorites: string[];
 }
@@ -27,6 +31,10 @@ export const DEFAULTS: Settings = {
   sort: 'chrono',
   sidebarWidth: 280,
   vimMode: false,
+  spellcheck: true,
+  lineNumbers: true,
+  syntaxHighlight: true,
+  completions: true,
   showFileIcons: true,
   favorites: [],
 };

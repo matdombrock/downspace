@@ -59,6 +59,9 @@
   let sortMode = $state<SortMode>(_settings.sort);
   let showFileIcons = $state(_settings.showFileIcons);
   let vimModeEnabled = $state(_settings.vimMode);
+  let lineNumbersEnabled = $state(_settings.lineNumbers);
+  let syntaxHighlightEnabled = $state(_settings.syntaxHighlight);
+  let completionsEnabled = $state(_settings.completions);
   let collapseKey = $state(0);
 
   let fileInput: HTMLInputElement;
@@ -358,6 +361,50 @@
       }}>
         <i class="fas fa-icons"></i>
         <span>File icons {showFileIcons ? 'shown' : 'hidden'}</span>
+      </button>
+
+      <div class="settings-divider"></div>
+
+      <div class="settings-title">Editor</div>
+
+      <button class="settings-action" onclick={() => {
+        spellcheckEnabled = !spellcheckEnabled;
+        const s = loadSettings();
+        s.spellcheck = spellcheckEnabled;
+        saveSettings(s);
+      }}>
+        <i class="fas fa-spell-check"></i>
+        <span>Spell check {spellcheckEnabled ? 'on' : 'off'}</span>
+      </button>
+
+      <button class="settings-action" onclick={() => {
+        lineNumbersEnabled = !lineNumbersEnabled;
+        const s = loadSettings();
+        s.lineNumbers = lineNumbersEnabled;
+        saveSettings(s);
+      }}>
+        <i class="fas fa-list-ol"></i>
+        <span>Line numbers {lineNumbersEnabled ? 'on' : 'off'}</span>
+      </button>
+
+      <button class="settings-action" onclick={() => {
+        syntaxHighlightEnabled = !syntaxHighlightEnabled;
+        const s = loadSettings();
+        s.syntaxHighlight = syntaxHighlightEnabled;
+        saveSettings(s);
+      }}>
+        <i class="fas fa-highlighter"></i>
+        <span>Syntax highlight {syntaxHighlightEnabled ? 'on' : 'off'}</span>
+      </button>
+
+      <button class="settings-action" onclick={() => {
+        completionsEnabled = !completionsEnabled;
+        const s = loadSettings();
+        s.completions = completionsEnabled;
+        saveSettings(s);
+      }}>
+        <i class="fas fa-list-check"></i>
+        <span>Completions {completionsEnabled ? 'on' : 'off'}</span>
       </button>
 
       <button class="settings-action" onclick={() => {
