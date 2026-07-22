@@ -2,7 +2,8 @@
   import type { TreeNode } from './types';
   import type { SearchResult } from './types';
   import TreeDir from './TreeDir.svelte';
-  import { searchNotes, uploadFiles } from './api';
+  import { searchNotes, uploadFiles, moveNote, moveFile } from './api';
+  import { sortable } from './sortable';
   import { loadSettings, saveSettings, DEFAULTS } from './settings';
   import type { Theme, SortMode } from './settings';
   import themes from './themes';
@@ -151,6 +152,20 @@
     fileInput.click();
     // Store dirPath for the change handler
     (fileInput as any)._uploadDir = dirPath;
+  }
+
+  async function handleRootMove(srcPath: string, targetDir: string) {
+    const destPath = targetDir ? `${targetDir}/${srcPath.split('/').pop()}` : srcPath.split('/').pop()!;
+    try {
+      await moveNote(srcPath, destPath);
+      onUpload();
+    } catch {
+      try {
+        await moveFile(srcPath, destPath);
+      } catch (err: any) {
+        alert('Move failed: ' + err.message);
+      }
+    }
   }
 
   async function onFilesSelected(e: Event) {
@@ -521,7 +536,10 @@
       </label>
     </div>
   {:else}
-    <div class="sidebar-tree">
+    <div
+      class="sidebar-tree"
+      use:sortable={{ dirPath: '', onMove: handleRootMove }}
+    >
       {#each rootDirs as dir (dir.path)}
         <TreeDir
           {dir}
@@ -547,6 +565,7 @@
         <div
           class="tree-note-row"
           class:active={selectedNotePath === note.path}
+          data-path={note.path}
           oncontextmenu={(e) => { e.preventDefault(); openContextMenu(e.currentTarget, [
             { label: 'Rename', icon: 'pencil-alt', action: () => onRenameNote(note.path) },
             { label: 'Delete', icon: 'times', action: () => onDeleteNote(note.path) },
@@ -569,6 +588,7 @@
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
           class="tree-file-row"
+          data-path={file.path}
           oncontextmenu={(e) => { e.preventDefault(); openContextMenu(e.currentTarget, [
             { label: 'Rename', icon: 'pencil-alt', action: () => onRenameFile(file.path) },
             { label: 'Delete', icon: 'times', action: () => onDeleteFile(file.path) },
@@ -822,6 +842,14 @@
     padding: 4px 0;
     overflow-y: auto;
     flex: 1;
+  }
+
+  :global(.sortable-ghost) {
+    opacity: 0.4;
+  }
+
+  :global(.sortable-drag) {
+    opacity: 0.8;
   }
 
   .tree-note {

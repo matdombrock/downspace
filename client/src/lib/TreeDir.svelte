@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { TreeNode } from './types';
   import Self from './TreeDir.svelte';
-  import { uploadFiles } from './api';
+  import { uploadFiles, moveNote, moveFile } from './api';
+  import { sortable } from './sortable';
 
   interface Props {
     dir: TreeNode;
@@ -130,6 +131,30 @@
   const subdirs = $derived(dir.children?.filter(c => c.type === 'directory') ?? []);
   const subnotes = $derived(dir.children?.filter(c => c.type === 'note') ?? []);
   const subfiles = $derived(dir.children?.filter(c => c.type === 'file') ?? []);
+
+  // ─── Sortable move handler ──────────────────────────────────────────────
+
+  async function handleMove(srcPath: string, targetDir: string) {
+    const destPath = targetDir ? `${targetDir}/${srcPath.split('/').pop()}` : srcPath.split('/').pop()!;
+    try {
+      if (srcPath.endsWith('.md') || !srcPath.includes('.')) {
+        // Determine type by checking if the source ends with .md
+        // Notes in the tree are stored without .md extension in the path
+        // We try each API and let the first succeed handle it
+        await moveNote(srcPath, destPath);
+      } else {
+        await moveFile(srcPath, destPath);
+      }
+      onUpload();
+    } catch {
+      // Fallback: try file move if note move failed (wrong type guess)
+      try {
+        await moveFile(srcPath, destPath);
+      } catch {
+        alert('Move failed');
+      }
+    }
+  }
 </script>
 
 <div class="tree-item">
@@ -148,7 +173,8 @@
   </div>
 
   {#if expanded}
-    <div class="tree-children">
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="tree-children" use:sortable={{ dirPath: dir.path, onMove: handleMove }}>
       {#each subdirs as subdir (subdir.path)}
         <Self
           dir={subdir}
@@ -173,6 +199,7 @@
         <div
           class="tree-note-row"
           class:active={selectedNotePath === note.path}
+          data-path={note.path}
           oncontextmenu={(e) => { e.preventDefault(); onNoteFileContextMenu(e.currentTarget, 'note', note.path, e.clientY); }}
           ontouchstart={(e) => onNoteFileTouchStart(e.currentTarget, 'note', note.path, e.touches[0].clientY)}
           ontouchmove={onNoteFileTouchMove}
@@ -193,6 +220,7 @@
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
           class="tree-file-row"
+          data-path={file.path}
           oncontextmenu={(e) => { e.preventDefault(); onNoteFileContextMenu(e.currentTarget, 'file', file.path, e.clientY); }}
           ontouchstart={(e) => onNoteFileTouchStart(e.currentTarget, 'file', file.path, e.touches[0].clientY)}
           ontouchmove={onNoteFileTouchMove}
@@ -321,5 +349,11 @@
     background: none;
   }
 
-
+  /* Sortable visual feedback */
+  :global(.tree-children.sortable-ghost),
+  :global(.sidebar-tree.sortable-ghost) {
+    outline: 2px dashed var(--accent);
+    outline-offset: -2px;
+    background: var(--bg-tertiary);
+  }
 </style>
