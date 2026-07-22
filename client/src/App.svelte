@@ -351,8 +351,8 @@
     <span class="logo"><i class="fas fa-rocket"></i> downspace</span>
     <div class="header-actions">
       {#if selectedNote && !editMode}
-        <button class="btn" onclick={handleRenameNote} title="Rename"><i class="fas fa-tag"></i></button>
         <button class="btn" onclick={handleEdit} title="Edit"><i class="fas fa-pen-to-square"></i></button>
+        <button class="btn" onclick={handleRenameNote} title="Rename"><i class="fas fa-tag"></i></button>
         <button class="btn" onclick={handleCopyNote} title="Copy to clipboard"><i class="fas fa-copy"></i></button>
         <button class="btn" onclick={handleDelete} title="Delete"><i class="fas fa-trash-alt"></i></button>
       {/if}
