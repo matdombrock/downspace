@@ -33,6 +33,8 @@ Most note-taking apps either live in the cloud, require a database, or lock your
 - **File upload** — drag or select files into any directory via the sidebar.
 - **Favorites** — star notes to mark them as favorites. Toggle from the header action bar; filter the sidebar to show only favorites. Stored in localStorage alongside settings. Favorite paths update automatically on rename and are removed on delete.
 - **10 themes** — Light, Dark, Dark Modern, Dark OLED, Gruvbox, Everforest, Catppuccin, Nord, Tokyo Night, Dracula.
+- **Markdown rendering** — view renders markdown via `marked` with configurable flavor (Default or GFM), optional line-break rendering (`breaks`), and GitHub-style alert blocks (`[!NOTE]`, `[!TIP]`, etc.). See [`gfm-alerts.md`](./docs/gfm-alerts.md).
+- **Editor options** — spell check, line numbers, syntax highlighting, autocompletions, and Vim mode all configurable from Settings.
 - **Settings** — toggle Vim mode, toggle file icons, change sort order. Settings are stored as a single JSON blob in `localStorage`. Export and import settings.
 - **Resizable sidebar** — drag the divider to resize. Width is remembered in settings.
 - **Responsive** — hamburger sidebar on mobile, scrollable header actions.
@@ -104,8 +106,8 @@ downspace/
 ├── notes/               # Your markdown notes (created on first run)
 ├── scripts/
 │   └── dev.js           # Dev server launcher (concurrent)
-├── package.json         # Root workspace scripts
-└── plan.md
+├── docs/                # Documentation (favorites, GFM alerts, spellcheck, etc.)
+└── package.json         # Root workspace scripts
 ```
 
 ## API
@@ -139,7 +141,7 @@ Static files (images, attachments) are served under `/f/` — e.g. `/f/boticon2.
 | `/f/Recipes/photo.jpg` | Static file from `notes/Recipes/photo.jpg` |
 | `/api/note?path=x.md` | Note content as JSON |
 
-The `/f/` prefix prevents conflicts between the SPA router (which catches all paths for client-side routing) and static file serving. See [`static-file-paths.md`](./static-file-paths.md) for details.
+The `/f/` prefix prevents conflicts between the SPA router (which catches all paths for client-side routing) and static file serving. See [`static-file-paths.md`](./docs/static-file-paths.md) for details.
 
 ## License
 

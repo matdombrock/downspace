@@ -47,6 +47,42 @@
       return `<img src="/f/${resolved}" alt="${alt}"${titleAttr}>`;
     };
 
+    const ALERT_ICONS: Record<string, string> = {
+      note: 'fa-circle-info',
+      tip: 'fa-lightbulb',
+      important: 'fa-circle-exclamation',
+      warning: 'fa-triangle-exclamation',
+      caution: 'fa-circle-exclamation',
+    };
+
+    renderer.blockquote = function ({ tokens }) {
+      const firstPara = tokens?.[0];
+      if (firstPara?.type === 'paragraph') {
+        const firstTok = firstPara.tokens?.[0];
+        if (firstTok?.type === 'text') {
+          const marker = firstTok.raw.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*\n?/i);
+          if (marker) {
+            const type = marker[1].toLowerCase();
+            const after = firstTok.raw.slice(marker[0].length);
+            if (after) {
+              firstTok.raw = after;
+              firstTok.text = after;
+            } else {
+              firstPara.tokens.shift();
+              if (firstPara.tokens.length === 0) {
+                tokens.shift();
+              }
+            }
+            const inner = marked.Parser.parse(tokens, { renderer: this });
+            const label = marker[1].charAt(0) + marker[1].slice(1).toLowerCase();
+            const icon = ALERT_ICONS[type] || 'fa-circle-info';
+            return `<div class="alert alert-${type}"><strong class="alert-label"><i class="fas ${icon}"></i> ${label}</strong>${inner}</div>`;
+          }
+        }
+      }
+      return `<blockquote>${marked.Parser.parse(tokens, { renderer: this })}</blockquote>`;
+    };
+
     return marked(note.content || '*Empty note*', {
       renderer,
       gfm: s.markdownFlavor === 'gfm',
@@ -119,5 +155,69 @@
 
   .viewer-content :global(a[data-internal-link]) {
     cursor: pointer;
+  }
+
+  .viewer-content :global(.alert) {
+    border-left: 4px solid var(--accent);
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin: 16px 0;
+  }
+
+  .viewer-content :global(.alert > :first-child) {
+    margin-top: 0;
+  }
+
+  .viewer-content :global(.alert > :last-child) {
+    margin-bottom: 0;
+  }
+
+  .viewer-content :global(.alert-label) {
+    font-size: 0.9em;
+  }
+
+  .viewer-content :global(.alert-label i) {
+    margin-right: 6px;
+  }
+
+  .viewer-content :global(.alert > .alert-label + p),
+  .viewer-content :global(.alert > .alert-label + p:first-of-type) {
+    display: inline;
+  }
+
+  .viewer-content :global(.alert-note) {
+    border-color: #58a6ff;
+  }
+  .viewer-content :global(.alert-note .alert-label) {
+    color: #58a6ff;
+  }
+
+  .viewer-content :global(.alert-tip) {
+    border-color: #3fb950;
+  }
+  .viewer-content :global(.alert-tip .alert-label) {
+    color: #3fb950;
+  }
+
+  .viewer-content :global(.alert-important) {
+    border-color: #a371f7;
+  }
+  .viewer-content :global(.alert-important .alert-label) {
+    color: #a371f7;
+  }
+
+  .viewer-content :global(.alert-warning) {
+    border-color: #d29922;
+  }
+  .viewer-content :global(.alert-warning .alert-label) {
+    color: #d29922;
+  }
+
+  .viewer-content :global(.alert-caution) {
+    border-color: #f85149;
+  }
+  .viewer-content :global(.alert-caution .alert-label) {
+    color: #f85149;
   }
 </style>
