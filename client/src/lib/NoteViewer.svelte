@@ -2,6 +2,17 @@
   import { marked } from 'marked';
   import { settingsStore } from './settings';
   import type { Note } from './types';
+  import mermaid from 'mermaid';
+
+  let mermaidInited = false;
+  function ensureMermaid(theme: string) {
+    if (mermaidInited) return;
+    mermaidInited = true;
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: theme === 'light' ? 'default' : 'dark',
+    });
+  }
 
   interface Props {
     note: Note;
@@ -90,16 +101,42 @@
     });
   });
 
-  // Re-execute <script> tags after render (innerHTML skips them)
+  // Post-process rendered HTML: re-execute <script> tags and render mermaid
   $effect(() => {
+    const s = $settingsStore;
     rendered;
     if (!viewerRef) return;
+
+    // Re-execute <script> tags (innerHTML skips them)
     for (const old of viewerRef.querySelectorAll('script')) {
-      const s = document.createElement('script');
-      if (old.src) s.src = old.src;
-      else s.textContent = old.textContent;
-      old.replaceWith(s);
+      const el = document.createElement('script');
+      if (old.src) el.src = old.src;
+      else el.textContent = old.textContent;
+      old.replaceWith(el);
     }
+
+    // Render mermaid diagrams
+    const codeBlocks = viewerRef.querySelectorAll('pre > code.language-mermaid');
+    if (codeBlocks.length === 0) return;
+
+    // Remove any previously rendered mermaid elements
+    for (const old of viewerRef.querySelectorAll('.mermaid')) {
+      old.remove();
+    }
+
+    // Initialize mermaid with the correct theme
+    ensureMermaid(s.theme);
+
+    for (const code of codeBlocks) {
+      const pre = code.parentElement!;
+      const source = code.textContent || '';
+      const preMermaid = document.createElement('pre');
+      preMermaid.className = 'mermaid';
+      preMermaid.textContent = source;
+      pre.replaceWith(preMermaid);
+    }
+
+    mermaid.run({ querySelector: '.mermaid' }).catch(() => {});
   });
 
   function handleClick(e: MouseEvent) {
@@ -219,5 +256,11 @@
   }
   .viewer-content :global(.alert-caution .alert-label) {
     color: #f85149;
+  }
+
+  .viewer-content :global(.mermaid) {
+    overflow-x: auto;
+    margin: 16px 0;
+    text-align: center;
   }
 </style>
