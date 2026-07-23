@@ -10,6 +10,7 @@ export type Theme =
   | 'tokyo-night'
   | 'dracula';
 export type SortMode = 'chrono' | 'alpha';
+export type FavoritesView = 'tree' | 'flat';
 export type MarkdownFlavor = 'default' | 'gfm';
 
 export interface Settings {
@@ -23,6 +24,7 @@ export interface Settings {
   completions: boolean;
   showFileIcons: boolean;
   favorites: string[];
+  favoritesView: FavoritesView;
   markdownFlavor: MarkdownFlavor;
   markdownBreaks: boolean;
   inlineMath: boolean;
@@ -44,6 +46,7 @@ export const DEFAULTS: Settings = {
   completions: true,
   showFileIcons: true,
   favorites: [],
+  favoritesView: 'tree',
   markdownFlavor: 'gfm',
   markdownBreaks: false,
   inlineMath: false,

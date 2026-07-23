@@ -5,7 +5,7 @@
   import { searchNotes, uploadFiles, moveNote, moveFile } from './api';
   import { sortable } from './sortable';
   import { loadSettings, saveSettings, DEFAULTS } from './settings';
-  import type { Theme, SortMode } from './settings';
+  import type { Theme, SortMode, FavoritesView } from './settings';
   import themes from './themes';
 
   interface Props {
@@ -68,6 +68,7 @@
   let markdownFlavor = $state<'default' | 'gfm'>(_settings.markdownFlavor);
   let markdownBreaksEnabled = $state(_settings.markdownBreaks);
   let inlineMathEnabled = $state(_settings.inlineMath);
+  let favoritesView = $state<FavoritesView>(_settings.favoritesView);
   let collapseKey = $state(0);
 
   let fileInput: HTMLInputElement;
@@ -219,6 +220,30 @@
       }
       return acc;
     }, []);
+  }
+
+  function flattenFavorites(nodes: TreeNode[]): TreeNode[] {
+    const result: TreeNode[] = [];
+    function walk(list: TreeNode[]) {
+      for (const node of list) {
+        if (node.type === 'note' && favorites.includes(node.path)) {
+          result.push(node);
+        } else if (node.type === 'directory' && node.children) {
+          walk(node.children);
+        }
+      }
+    }
+    walk(nodes);
+    // Sort by name by default — respects the global sort setting
+    result.sort((a, b) => {
+      if (sortMode === 'chrono') {
+        const ma = a.modified ?? '';
+        const mb = b.modified ?? '';
+        return mb.localeCompare(ma);
+      }
+      return a.name.localeCompare(b.name);
+    });
+    return result;
   }
 
   function collapseAll() {
@@ -383,6 +408,16 @@
         <span>File icons {showFileIcons ? 'shown' : 'hidden'}</span>
       </button>
 
+      <button class="settings-action" onclick={() => {
+        favoritesView = favoritesView === 'tree' ? 'flat' : 'tree';
+        const s = loadSettings();
+        s.favoritesView = favoritesView;
+        saveSettings(s);
+      }}>
+        <i class="fas fa-star"></i>
+        <span>Favorites view: {favoritesView === 'tree' ? 'Tree' : 'Flat list'}</span>
+      </button>
+
       <div class="settings-divider"></div>
 
       <div class="settings-title">Editor</div>
@@ -534,6 +569,36 @@
         <i class="fas fa-upload"></i>
         <span>Import</span>
       </label>
+    </div>
+  {:else if showFavorites && favoritesView === 'flat'}
+    <div class="sidebar-tree">
+      {#each flattenFavorites(tree) as note (note.path)}
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+          class="tree-note-row"
+          class:active={selectedNotePath === note.path}
+          data-path={note.path}
+          oncontextmenu={(e) => { e.preventDefault(); openContextMenu(e.currentTarget, [
+            { label: 'Rename', icon: 'pencil-alt', action: () => onRenameNote(note.path) },
+            { label: 'Delete', icon: 'times', action: () => onDeleteNote(note.path) },
+          ], e.clientY); }}
+          ontouchstart={(e) => onLongPressStart(e.currentTarget, [
+            { label: 'Rename', icon: 'pencil-alt', action: () => onRenameNote(note.path) },
+            { label: 'Delete', icon: 'times', action: () => onDeleteNote(note.path) },
+          ], e.touches[0].clientY)}
+          ontouchmove={onLongPressMove}
+          ontouchend={onLongPressEnd}
+        >
+          <button class="tree-note" class:active={selectedNotePath === note.path} onclick={() => onSelectNote(note.path)}>
+            {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file-lines"></i></span>{/if}
+            <span class="tree-label">{note.name}</span>
+            <span class="tree-path">{note.path}</span>
+          </button>
+        </div>
+      {/each}
+      {#if flattenFavorites(tree).length === 0}
+        <div class="tree-empty">No favorite notes</div>
+      {/if}
     </div>
   {:else}
     <div
@@ -891,6 +956,16 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .tree-path {
+    font-size: 11px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 1;
+    max-width: 40%;
   }
 
   .tree-note-row {
