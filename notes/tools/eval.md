@@ -1,6 +1,7 @@
 <textarea id="in" type="text" oninput="update()"></textarea>
 <pre id="out">...</pre>
 <script>
+{
     const input = document.getElementById('in');
     input.placeholder = `
 const a = 32;
@@ -15,6 +16,7 @@ a + 2`.trim();
             //     
         };
     }
+}
 </script>
 
 <style>

@@ -3,6 +3,7 @@
 <button onclick="save()">save</button>
 <pre id="saved">saved</pre>
 <script>
+{
     const input = document.getElementById('in');
     const output = document.getElementById('out');
     const saved = document.getElementById('saved');
@@ -20,4 +21,5 @@
         savedArr.push(res);
         saved
     }
+}
 </script>
