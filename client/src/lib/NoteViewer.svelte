@@ -71,27 +71,57 @@
     };
 
     renderer.blockquote = function ({ tokens }) {
+      // Check for GFM alert syntax
       const firstPara = tokens?.[0];
       if (firstPara?.type === 'paragraph') {
         const firstTok = firstPara.tokens?.[0];
         if (firstTok?.type === 'text') {
-          const marker = firstTok.raw.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*\n?/i);
+          const marker = firstTok.raw.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/i);
           if (marker) {
             const type = marker[1].toLowerCase();
-            const after = firstTok.raw.slice(marker[0].length);
-            if (after) {
-              firstTok.raw = after;
-              firstTok.text = after;
-            } else {
-              firstPara.tokens.shift();
-              if (firstPara.tokens.length === 0) {
-                tokens.shift();
-              }
-            }
-            const inner = marked.Parser.parse(tokens, { renderer: this });
             const label = marker[1].charAt(0) + marker[1].slice(1).toLowerCase();
             const icon = ALERT_ICONS[type] || 'fa-circle-info';
-            return `<div class="alert alert-${type}"><strong class="alert-label"><i class="fas ${icon}"></i> ${label}</strong>${inner}</div>`;
+
+            // Remove the marker text from the first text token, stripping leading whitespace
+            firstTok.raw = firstTok.raw.slice(marker[0].length).replace(/^\s+/, '');
+            firstTok.text = firstTok.text.slice(marker[0].length).replace(/^\s+/, '');
+
+            // If the first text token is now empty, remove it
+            if (!firstTok.raw.trim()) {
+              firstPara.tokens.shift();
+            }
+
+            // Strip any leading br/whitespace tokens that came from trailing spaces after the marker
+            while (
+              firstPara.tokens.length > 0 &&
+              (firstPara.tokens[0].type === 'br' ||
+                (firstPara.tokens[0].type === 'text' &&
+                  !firstPara.tokens[0].raw.trim()))
+            ) {
+              firstPara.tokens.shift();
+            }
+
+            // If the first paragraph has no remaining tokens, remove it from the blockquote
+            if (firstPara.tokens.length === 0) {
+              tokens.shift();
+            }
+
+            // Strip any following empty paragraphs/spaces from blank lines
+            while (
+              tokens.length > 0 &&
+              (tokens[0].type === 'space' ||
+                (tokens[0].type === 'paragraph' &&
+                  (!tokens[0].tokens ||
+                    tokens[0].tokens.length === 0 ||
+                    (tokens[0].tokens.length === 1 &&
+                      tokens[0].tokens[0].type === 'text' &&
+                      !tokens[0].tokens[0].raw.trim()))))
+            ) {
+              tokens.shift();
+            }
+
+            const inner = marked.Parser.parse(tokens, { renderer: this }).trim();
+            return `<div class="alert alert-${type}"><strong class="alert-label"><i class="fas ${icon}"></i> ${label}</strong><div class="alert-body">${inner}</div></div>`;
           }
         }
       }
@@ -274,16 +304,21 @@
   }
 
   .viewer-content :global(.alert-label) {
+    display: block;
     font-size: 0.9em;
+    margin-bottom: 4px;
   }
 
   .viewer-content :global(.alert-label i) {
     margin-right: 6px;
   }
 
-  .viewer-content :global(.alert > .alert-label + p),
-  .viewer-content :global(.alert > .alert-label + p:first-of-type) {
-    display: inline;
+  .viewer-content :global(.alert-body > :first-child) {
+    margin-top: 0;
+  }
+
+  .viewer-content :global(.alert-body > :last-child) {
+    margin-bottom: 0;
   }
 
   .viewer-content :global(.alert-note) {

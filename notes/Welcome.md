@@ -2,6 +2,31 @@
 
 This is your personal note-taking space. Notes are stored as plain markdown files in the `notes/` directory.
 
+## About downspace
+
+An Obsidian notes replacement. 
+
+- Web based
+- Self-hosted
+- Single user
+  - Intended to be used over tailscale or similar service 
+- Full mobile support 
+- No database.
+  - Just markdown files. 
+- Full drop-in replacement for stock Obsidian
+  - Or use along side Obsidian.
+- No sync, all files live on the server
+- No over-engineered extension system from hell
+- Full markdown support
+- Optional HTML/JS/CSS support
+  - Embed iframes 
+  - Custom formatting and styling
+  - Build simple web apps
+- Internal note linking (wiki support)
+- Arbitrary file upload and mgmt
+- Execute commands on the host shell
+- VIM MODE
+
 ## Getting Started
 
 - **Create a note**: Click the `+` icon in the sidebar, or create a `.md` file in the `notes/` directory.
@@ -46,4 +71,67 @@ function greet(name: string): string {
 | Themes | ✅ |
 | Mobile support | ✅ |
 
+If you have enabled GFM (Github flavored markdown) you should see the alerts below:
+
+> [!NOTE]  
+> Highlights information that users should take into account, even when skimming.
+
+> [!TIP]
+> Optional information to help a user be more successful.
+
+> [!IMPORTANT]  
+> Crucial information necessary for users to succeed.
+
+> [!WARNING]  
+> Critical content demanding immediate user attention due to potential risks.
+
+> [!CAUTION]
+> Negative potential consequences of an action.
+
+## Mermaid
+
+```mermaid
+graph TD;
+    A-->B;
+    B-->C;
+```
+
+## LaTeX Math
+
+[KaTeX](https://katex.org/) renders mathematical expressions inside `$...$` (inline) and `$$...$$` (display) delimiters.
+
+### Inline math
+
+```
+The mass-energy equivalence is $E = mc^2$.
+```
+
+The mass-energy equivalence is $E = mc^2$.
+
+Renders as: The mass-energy equivalence is $E = mc^2$.
+
+### Display math
+
+```
+$$
+\int_{-\infty}^{\infty} e^{-x^2} \, dx = \sqrt{\pi}
+$$
+```
+
+Renders as a centered block formula.
+
+### Supported features
+
+- All standard KaTeX commands (integrals, sums, fractions, matrices, etc.)
+- Greek letters: `\alpha`, `\beta`, `\gamma`, etc.
+- Operators: `\sum`, `\int`, `\prod`, `\lim`, etc.
+- Accents: `\hat`, `\tilde`, `\vec`, etc.
+- Environments: `matrix`, `cases`, `align`, etc.
+
+### Notes
+
+- Only `$...$` and `$$...$$` delimiters are supported. `\(...\)` and `\[...\]` do not work because the markdown parser strips the backslashes.
+- Invalid LaTeX is silently ignored (rendered as raw text).
+- Math inside code blocks (`` ` ``) is not rendered.
+- Math inside mermaid diagram source blocks is not rendered.
 Enjoy using downspace!
