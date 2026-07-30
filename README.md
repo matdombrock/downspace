@@ -1,52 +1,34 @@
 # downspace
 
-A self-hosted, single-user note-taking app that stores notes as plain markdown files on disk. No database, no cloud, no lock-in — just your notes as `.md` files.
+Self-hosted, single-user note-taking app. Notes are plain markdown files on disk.
 
-## Why
+Obsidian notes but:
+- Less bloat
+- More cool
 
-Most note-taking apps either live in the cloud, require a database, or lock your notes in a proprietary format. downspace takes the opposite approach:
+## AI Usage Disclaimer
 
-- **Notes are plain markdown files** — open them in any editor, use `grep`, version control with git, sync with rsync.
-- **No database** — the filesystem *is* the database. The app reads and writes `.md` files directly.
-- **Self-hosted** — runs on any machine with Node.js. No external services.
-- **Single-user** — no accounts, no auth, no multi-user overhead. Just you and your notes.
+- This project contains LLM output. 
+- I have a deep love for programming and have been doing it professionally for over a decade. 
+    - Long before AI was capable of doing it for us. 
+- Downspace is a labor of love and a project that I use personally every day. 
+- The goal is to build a stable, maintainable, open source tool that can be used for years to come.  
+
+For more info, feel free to check out my personal [AI Usage Policy](https://matdombrock.com/tools.html). 
 
 ## Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Backend | Node.js, TypeScript, Express |
-| Frontend | Svelte 5 (SPA), Vite |
-| Editor | CodeMirror 6 with optional Vim keybindings |
-| Rendering | marked (markdown → HTML) |
-| Icons | Font Awesome 6 (free) |
-
-## Features
-
-- **Notes** — create, edit, rename, delete, copy to clipboard. Stored as `.md` files in `notes/`.
-- **Directories** — organize notes in directories. Create, rename, delete recursively.
-- **File browser** — sidebar tree of all files. `.md` files open in-app; other files (images, PDFs, etc.) open in a new tab via `/f/`.
-- **Search** — full-text and filename search with debounced input (300ms). Results sortable by relevance (filename prefix > substring > content match) or by date.
-- **View / Edit modes** — view renders markdown via `marked`; edit uses CodeMirror 6 with syntax highlighting, line numbers, bracket matching, code folding, and optional Vim keybindings.
-- **Internal links** — `[Pasta](Recipes/Pasta)` navigates within the app. URL updates via `pushState`. Back/forward browser buttons work.
-- **Image support** — `![bot](/f/boticon2.png)` serves files from the `notes/` directory via the `/f/` prefix.
-- **File upload** — drag or select files into any directory via the sidebar.
-- **Favorites** — star notes to mark them as favorites. Toggle from the header action bar; filter the sidebar to show only favorites. Stored in localStorage alongside settings. Favorite paths update automatically on rename and are removed on delete.
-- **10 themes** — Light, Dark, Dark Modern, Dark OLED, Gruvbox, Everforest, Catppuccin, Nord, Tokyo Night, Dracula.
-- **LaTeX math** — ` ```math ` / ` ```latex ` code blocks rendered via KaTeX (always on). Inline `$...$` / `$$...$$` math via auto-render (opt-in, disabled by default to avoid `$` conflicts).
-- **Mermaid diagrams** — render flowcharts, sequence diagrams, Gantt charts, and more using `` ```mermaid `` fenced code blocks. Theme-aware (light/dark).
-- **Markdown rendering** — view renders markdown via `marked` with configurable flavor (Default or GFM), optional line-break rendering (`breaks`), GitHub-style alert blocks (`[!NOTE]`, `[!TIP]`, etc.), Mermaid diagrams, and LaTeX math. See [`docs/gfm-alerts.md`](./docs/gfm-alerts.md) and [`docs/diagrams-and-math.md`](./docs/diagrams-and-math.md).
-- **Editor options** — spell check, line numbers, syntax highlighting, autocompletions, and Vim mode all configurable from Settings.
-- **Settings** — toggle Vim mode, toggle file icons, change sort order. Settings are stored as a single JSON blob in `localStorage`. Export and import settings.
-- **Resizable sidebar** — drag the divider to resize. Width is remembered in settings.
-- **Responsive** — hamburger sidebar on mobile, swipe-right gesture to open sidebar (disabled in edit mode), scrollable header actions.
-- **SPA routing** — direct URLs like `/Recipes/Pasta` load the correct note. Static files at `/f/...` don't conflict with the SPA router.
+- Backend: Node.js, TypeScript, Express
+- Frontend: Svelte 5 (SPA), Vite
+- Editor: CodeMirror 6 (optional Vim keybindings)
+- Rendering: marked (markdown → HTML)
+- Icons: Font Awesome 6
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 20+
+Node.js 20+
 
 ### Install
 
@@ -58,13 +40,11 @@ npm run install:all
 
 ### Development
 
-Starts both the Express server (with `tsx watch` for auto-restart) and the Vite dev server (with HMR):
-
 ```bash
 npm run dev
 ```
 
-The app is available at `http://localhost:5173` (Vite dev server proxies API requests to Express on port 3000).
+App at `http://localhost:5173` (Vite dev server proxies API requests to Express on port 3000).
 
 ### Production Build
 
@@ -73,7 +53,7 @@ npm run build
 npm start
 ```
 
-This builds the SPA to `client/dist/` and serves it (along with the API) from the Express server on port 3000. Visit `http://localhost:3000`.
+Builds the SPA to `client/dist/`. Express serves it on port 3000.
 
 ### Environment Variables
 
@@ -82,44 +62,14 @@ This builds the SPA to `client/dist/` and serves it (along with the API) from th
 | `PORT` | `3000` | Express server port |
 | `NOTES` | `./notes` | Path to the notes directory |
 
-## Project Structure
-
-```
-downspace/
-├── client/              # Svelte 5 SPA
-│   ├── src/
-│   │   ├── App.svelte           # Main app component
-│   │   ├── main.ts              # Entry point
-│   │   └── lib/
-│   │       ├── Sidebar.svelte   # File browser sidebar
-│   │       ├── NoteViewer.svelte # Markdown rendered view
-│   │       ├── NoteEditor.svelte # CodeMirror editor
-│   │       ├── TreeDir.svelte   # Recursive directory tree
-│   │       ├── ThemeToggle.svelte
-│   │       ├── api.ts           # API client
-│   │       ├── types.ts         # Shared types
-│   │       ├── themes.ts        # Theme definitions
-│   │       └── settings.ts      # Settings persistence
-│   ├── index.html
-│   └── vite.config.ts
-├── server/              # Express API server
-│   └── src/
-│       └── index.ts             # API routes + static serving
-├── notes/               # Your markdown notes (created on first run)
-├── scripts/
-│   └── dev.js           # Dev server launcher (concurrent)
-├── docs/                # Documentation (favorites, GFM alerts, spellcheck, etc.)
-└── package.json         # Root workspace scripts
-```
-
 ## API
 
-All API endpoints are prefixed with `/api`.
+All endpoints prefixed with `/api`.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/tree` | Get the full directory/file tree |
-| `GET` | `/api/note?path=...` | Get note content and metadata |
+| `GET` | `/api/tree` | Full directory/file tree |
+| `GET` | `/api/note?path=...` | Note content and metadata |
 | `POST` | `/api/note` | Create or update a note |
 | `DELETE` | `/api/note?path=...` | Delete a note |
 | `POST` | `/api/note/move` | Rename or move a note |
@@ -131,7 +81,7 @@ All API endpoints are prefixed with `/api`.
 | `POST` | `/api/upload?dir=...` | Upload files (multipart) |
 | `GET` | `/api/search?q=...&mode=fulltext\|filename` | Search notes |
 
-Static files (images, attachments) are served under `/f/` — e.g. `/f/boticon2.png` serves `notes/boticon2.png`.
+Static files served under `/f/` — `/f/boticon2.png` serves `notes/boticon2.png`.
 
 ## Path Scheme
 
@@ -143,7 +93,7 @@ Static files (images, attachments) are served under `/f/` — e.g. `/f/boticon2.
 | `/f/Recipes/photo.jpg` | Static file from `notes/Recipes/photo.jpg` |
 | `/api/note?path=x.md` | Note content as JSON |
 
-The `/f/` prefix prevents conflicts between the SPA router (which catches all paths for client-side routing) and static file serving. See [`static-file-paths.md`](./docs/static-file-paths.md) for details.
+The `/f/` prefix prevents conflicts between the SPA router and static file serving.
 
 ## License
 
