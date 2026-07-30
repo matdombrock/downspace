@@ -475,7 +475,7 @@ app.post('/exec', async (req, res) => {
       return res.status(400).json({ error: 'command string required' });
     }
 
-    const result = await exec(command, {
+    const result = await exec(`cd ${NOTES_DIR} && ${command}`, {
       timeout: 30_000,
       maxBuffer: 10 * 1024 * 1024,
     });
