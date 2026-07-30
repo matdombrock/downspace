@@ -3,6 +3,7 @@
   import Sidebar from "./lib/Sidebar.svelte";
   import NoteViewer from "./lib/NoteViewer.svelte";
   import NoteEditor from "./lib/NoteEditor.svelte";
+  import FileViewer from "./lib/FileViewer.svelte";
   import ThemeToggle from "./lib/ThemeToggle.svelte";
   import type { TreeNode, Note } from "./lib/types";
   import {
@@ -31,6 +32,7 @@
 
   let tree = $state<TreeNode[]>([]);
   let selectedNote = $state<Note | null>(null);
+  let selectedFile = $state<string | null>(null);
   let editMode = $state(false);
   let theme = $state<Theme>("light");
   let sidebarOpen = $state(false);
@@ -81,7 +83,11 @@
       await loadTree();
       const urlPath = window.location.pathname.slice(1).replace(/\/$/, "");
       if (urlPath) {
-        navigateToNoteFromPath(decodeURIComponent(urlPath));
+        if (urlPath.startsWith("f/")) {
+          selectedFile = decodeURIComponent(urlPath.slice(2));
+        } else {
+          navigateToNoteFromPath(decodeURIComponent(urlPath));
+        }
       }
     };
     init();
@@ -125,7 +131,7 @@
     }
   }
 
-  // ─── URL ↔ note path helpers ────────────────────────────────────────────
+  // ─── URL ↔ note/file path helpers ───────────────────────────────────────
 
   function toUrlPath(notePath: string): string {
     return (
@@ -143,31 +149,47 @@
     const notePath = path.endsWith(".md") ? path : path + ".md";
     try {
       selectedNote = await fetchNote(notePath);
+      selectedFile = null;
       editMode = false;
       return true;
     } catch {
       selectedNote = null;
+      selectedFile = null;
       return false;
     }
   }
 
   function onPopState() {
     const path = window.location.pathname.slice(1).replace(/\/$/, "");
-    if (path) {
+    if (path.startsWith("f/")) {
+      const filePath = decodeURIComponent(path.slice(2));
+      selectedNote = null;
+      selectedFile = filePath;
+      editMode = false;
+    } else if (path) {
       navigateToNoteFromPath(decodeURIComponent(path));
     } else {
       selectedNote = null;
+      selectedFile = null;
       editMode = false;
     }
   }
 
   // ─── Note selection (from sidebar or internal link) ─────────────────────
 
+  function handleSelectFile(filePath: string) {
+    selectedNote = null;
+    editMode = false;
+    selectedFile = filePath;
+    sidebarOpen = false;
+  }
+
   async function handleSelectNote(notePath: string) {
     loading = true;
     error = null;
     try {
       selectedNote = await fetchNote(notePath);
+      selectedFile = null;
       editMode = false;
       sidebarOpen = false;
       window.history.replaceState({ note: notePath }, "", toUrlPath(notePath));
@@ -184,6 +206,7 @@
     try {
       const notePath = path.endsWith(".md") ? path : path + ".md";
       selectedNote = await fetchNote(notePath);
+      selectedFile = null;
       editMode = false;
       sidebarOpen = false;
       window.history.pushState({ note: notePath }, "", toUrlPath(notePath));
@@ -219,6 +242,7 @@
       removeFavorite(selectedNote.path);
       favorites = loadSettings().favorites;
       selectedNote = null;
+      selectedFile = null;
       editMode = false;
       window.history.replaceState({ note: "" }, "", "/");
       await loadTree();
@@ -335,6 +359,7 @@
             })
             .catch(() => {
               selectedNote = null;
+              selectedFile = null;
               editMode = false;
               window.history.replaceState({ note: "" }, "", "/");
             });
@@ -394,6 +419,7 @@
         favorites = loadSettings().favorites;
         if (selectedNote?.path === notePath) {
           selectedNote = null;
+          selectedFile = null;
           editMode = false;
           window.history.replaceState({ note: "" }, "", "/");
         }
@@ -446,6 +472,7 @@
         loadTree();
         if (selectedNote && selectedNote.path.startsWith(dirPath + "/")) {
           selectedNote = null;
+          selectedFile = null;
           editMode = false;
           window.history.replaceState({ note: "" }, "", "/");
         }
@@ -526,6 +553,7 @@
       {favorites}
       selectedNotePath={selectedNote?.path ?? null}
       onSelectNote={handleSelectNote}
+      onSelectFile={handleSelectFile}
       onNewNote={handleNewNote}
       onNewDirectory={handleNewDirectory}
       onRenameDirectory={handleRenameDirectory}
@@ -551,6 +579,8 @@
 
     {#if loading}
       <div class="empty-state">Loading...</div>
+    {:else if selectedFile}
+      <FileViewer filePath={selectedFile} />
     {:else if !selectedNote}
       <div class="empty-state">
         <div class="empty-icon">

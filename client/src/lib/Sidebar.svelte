@@ -3,6 +3,11 @@
   import type { SearchResult } from './types';
   import TreeDir from './TreeDir.svelte';
   import { searchNotes, uploadFiles, moveNote, moveFile } from './api';
+
+  const EMBED_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif', 'mp4', 'webm', 'ogg', 'mov', 'mp3', 'wav', 'flac', 'aac', 'm4a', 'pdf']);
+  function isEmbeddable(filePath: string): boolean {
+    return EMBED_EXTS.has(filePath.split('.').pop()?.toLowerCase() ?? '');
+  }
   import { sortable } from './sortable';
   import { loadSettings, saveSettings, DEFAULTS } from './settings';
   import type { Theme, SortMode, FavoritesView } from './settings';
@@ -15,6 +20,7 @@
     favorites: string[];
     selectedNotePath: string | null;
     onSelectNote: (path: string) => void;
+    onSelectFile: (path: string) => void;
     onNewNote: (dirPath: string) => void;
     onNewDirectory: (dirPath: string) => void;
     onRenameDirectory: (dirPath: string) => void;
@@ -35,6 +41,7 @@
     favorites,
     selectedNotePath,
     onSelectNote,
+    onSelectFile,
     onNewNote,
     onNewDirectory,
     onRenameDirectory,
@@ -610,6 +617,7 @@
           {showFileIcons}
           {selectedNotePath}
           {onSelectNote}
+          {onSelectFile}
           {onNewNote}
           {onNewDirectory}
           {onRenameDirectory}
@@ -663,7 +671,7 @@
           ontouchmove={onLongPressMove}
           ontouchend={onLongPressEnd}
         >
-          <button class="tree-note" onclick={() => window.open('/f/' + file.path, '_blank')}>
+          <button class="tree-note" onclick={() => isEmbeddable(file.path) ? onSelectFile(file.path) : window.open('/f/' + file.path, '_blank')}>
             {#if showFileIcons}<span class="tree-dot"><i class="fas fa-file"></i></span>{/if}
             <span class="tree-label">{file.name}</span>
           </button>
