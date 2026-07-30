@@ -47,6 +47,13 @@
     if (collapseKey) expanded = false;
   });
 
+  // Auto-expand if the selected note is inside this directory
+  $effect(() => {
+    if (selectedNotePath && selectedNotePath.startsWith(dir.path + '/')) {
+      expanded = true;
+    }
+  });
+
   function toggle() {
     expanded = !expanded;
   }
