@@ -33,7 +33,7 @@ Node.js 20+
 ### Install
 
 ```bash
-git clone <repo-url> downspace
+git clone https://github.com/matdombrock/downspace.git
 cd downspace
 npm run install:all
 ```
