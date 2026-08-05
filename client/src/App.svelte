@@ -5,7 +5,13 @@
   import NoteEditor from "./lib/NoteEditor.svelte";
   import FileViewer from "./lib/FileViewer.svelte";
   import ThemeToggle from "./lib/ThemeToggle.svelte";
+  import ActionPicker from "./lib/ActionPicker.svelte";
   import type { TreeNode, Note } from "./lib/types";
+  import {
+    loadActions,
+    getActions,
+    type Action,
+  } from "./lib/actions";
   import {
     fetchTree,
     fetchNote,
@@ -39,6 +45,8 @@
   let showSettings = $state(false);
   let loading = $state(false);
   let error = $state<string | null>(null);
+  let actions = $state<Action[]>([]);
+  let showActions = $state(false);
 
   // ─── Swipe to open sidebar (mobile) ──────────────────────────────────────
 
@@ -78,6 +86,14 @@
   onMount(() => {
     theme = loadSettings().theme;
     applyTheme(theme);
+
+    loadActions()
+      .then(() => {
+        actions = getActions();
+      })
+      .catch((e: unknown) => {
+        error = e instanceof Error ? e.message : String(e);
+      });
 
     const init = async () => {
       await loadTree();
@@ -274,6 +290,16 @@
       .catch((e: unknown) => {
         error = e instanceof Error ? e.message : String(e);
       });
+  }
+
+  async function handleRunAction(action: Action) {
+    showActions = false;
+    error = null;
+    try {
+      await action.run({ note: selectedNote });
+    } catch (e: unknown) {
+      error = e instanceof Error ? e.message : String(e);
+    }
   }
 
   function handleCopyNote() {
@@ -521,6 +547,9 @@
         <button class="btn" onclick={handleDelete} title="Delete"
           ><i class="fas fa-trash-alt"></i></button
         >
+        <button class="btn" onclick={() => (showActions = true)} title="Actions"
+          ><i class="fas fa-bolt"></i></button
+        >
       {/if}
       {#if selectedNote && editMode}
         <button class="btn" onclick={handleCancelEdit} title="Cancel"
@@ -542,6 +571,15 @@
       role="button"
       tabindex="-1"
     ></div>
+  {/if}
+
+  <!-- Actions picker overlay -->
+  {#if showActions}
+    <ActionPicker
+      {actions}
+      onClose={() => (showActions = false)}
+      onPick={handleRunAction}
+    />
   {/if}
 
   <!-- Sidebar -->

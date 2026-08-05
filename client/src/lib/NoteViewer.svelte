@@ -247,7 +247,13 @@
     <span class="viewer-path">{note.directory ? note.directory + '/' : ''}{note.name}.md</span>
     <span class="viewer-modified">Modified: {new Date(note.modified).toLocaleString()}</span>
   </div>
-  <div role="presentation" class="markdown viewer-content" bind:this={viewerRef} onclick={handleClick}>
+  <div
+    role="presentation"
+    class="markdown viewer-content"
+    data-note-viewer
+    bind:this={viewerRef}
+    onclick={handleClick}
+  >
     {@html rendered}
   </div>
 </div>
