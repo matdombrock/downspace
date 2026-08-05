@@ -3,8 +3,8 @@
 Actions are front-end tools that run against the app — typically against the
 currently open note, but they can also operate on the whole notebook. They
 are plain TypeScript files that may manipulate the page directly or call the
-internal API (via `client/src/lib/api.ts`). Everything is client-side: no
-server changes are needed to add an action.
+internal API endpoints with plain `fetch` to `/api/...`. Everything is
+client-side: no server changes are needed to add an action.
 
 The system consists of three parts:
 
@@ -61,10 +61,17 @@ registerAction({
   keywords: ['search terms'], // extra searchable terms (optional)
   async run({ note }) {
     if (!note) throw new Error('No note is open');
-    // do something with note.content / note.path, call api.ts, etc.
+    // do something with note.content / note.path, fetch('/api/...'), etc.
   },
 });
 ```
+
+Actions are **self-contained**: the only import from the app is
+`registerAction` (the core registration API). Never import app internals
+(`api.ts`, `types.ts`, settings, etc.) — call the API endpoints directly
+with `fetch('/api/...')`, define local types, and inline helper logic.
+Action code does not need to be DRY; duplicating a small helper across
+actions is fine.
 
 ### The `Action` interface
 
