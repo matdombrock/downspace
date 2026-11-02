@@ -7,11 +7,7 @@
   import ThemeToggle from "./lib/ThemeToggle.svelte";
   import ActionPicker from "./lib/ActionPicker.svelte";
   import type { TreeNode, Note } from "./lib/types";
-  import {
-    loadActions,
-    getActions,
-    type Action,
-  } from "./lib/actions";
+  import { loadActions, getActions, type Action } from "./lib/actions";
   import {
     fetchTree,
     fetchNote,
@@ -313,14 +309,14 @@
   }
 
   function fallbackCopy(text: string) {
-    const ta = document.createElement('textarea');
+    const ta = document.createElement("textarea");
     ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
     document.body.appendChild(ta);
     ta.select();
     // @ts-expect-error document.execCommand is deprecated but serves as a fallback
-    document.execCommand('copy');
+    document.execCommand("copy");
     document.body.removeChild(ta);
   }
 
@@ -607,10 +603,7 @@
   </aside>
 
   <!-- Main content -->
-  <main
-    class="main-content"
-    class:edit-mode={editMode}
-  >
+  <main class="main-content" class:edit-mode={editMode}>
     {#if error}
       <div class="error-bar">{error}</div>
     {/if}
@@ -796,6 +789,5 @@
     .main-content.edit-mode {
       padding: 0;
     }
-
   }
 </style>
