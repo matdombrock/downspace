@@ -29,4 +29,6 @@ EXPOSE 3000
 
 ENV NODE_ENV=production
 
-CMD ["node", "--import", "tsx", "server/src/index.ts"]
+WORKDIR /app/server
+
+CMD ["node", "--import", "tsx", "src/index.ts"]
