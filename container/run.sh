@@ -38,6 +38,7 @@ if [[ -n "${TRUST_PROXY:-}" ]]; then
 fi
 
 exec "$ENGINE" run --rm -it \
+  --replace \
   --name "$NAME" \
   -p "${BIND}:${PORT}:3000" \
   -v "$NOTES_DIR:/app/notes" \
