@@ -64,7 +64,7 @@ Builds the SPA to `client/dist/`. Express serves it on port 3000.
 
 ## API
 
-All endpoints prefixed with `/api`.
+All endpoints prefixed with `/api`, except `/exec`.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -80,6 +80,7 @@ All endpoints prefixed with `/api`.
 | `POST` | `/api/file/move` | Rename or move a non-markdown file |
 | `POST` | `/api/upload?dir=...` | Upload files (multipart) |
 | `GET` | `/api/search?q=...&mode=fulltext\|filename` | Search notes |
+| `POST` | `/exec` | Run a shell command in the notes directory (body: `{ "command": "..." }`; returns `stdout`, `stderr`, `exitCode`; 30s timeout) |
 
 Static files served under `/f/` — `/f/boticon2.png` serves `notes/boticon2.png`.
 
