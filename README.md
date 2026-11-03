@@ -61,6 +61,40 @@ Builds the SPA to `client/dist/`. Express serves it on port 3000.
 |----------|---------|-------------|
 | `PORT` | `3000` | Express server port |
 | `NOTES` | `./notes` | Path to the notes directory |
+| `AUTH_TOKEN` | _(unset)_ | Bearer token required on every `/api/*` and `/exec` request. Unset = auth disabled |
+| `TRUST_PROXY` | _(unset)_ | Set to `1` behind a reverse proxy so `req.ip` is the client IP (login rate limiting) |
+
+### Authentication
+
+Downspace is single-user, so auth is a single shared bearer token rather than accounts.
+Set `AUTH_TOKEN` to a long random string and the server locks every API route and `/exec`:
+
+```bash
+AUTH_TOKEN="$(openssl rand -hex 32)" npm start
+```
+
+The browser stores the token in `localStorage` under `downspace_token`. On load the SPA asks
+`GET /api/session`; if a token is required and missing it shows the login modal, which posts to
+`POST /api/login` and then reloads. The login endpoint is rate limited to 10 attempts per 15
+minutes per IP (in memory, reset on restart).
+
+`client/src/main.ts` installs a `window.fetch` interceptor that adds
+`Authorization: Bearer <token>` to same-origin requests, so `<script>` blocks embedded in notes
+(including the tools in `notes/tools/`) keep calling `fetch('/exec')` with no changes.
+
+For scripts and terminals, pass the header yourself:
+
+```bash
+curl -s -H "Authorization: Bearer $AUTH_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"command":"ls"}' http://localhost:3000/exec
+```
+
+`X-Auth-Token: <token>` is accepted as an alternative header. To log out in the browser, clear
+localStorage or run `window.downspace.logout()`. See [docs/auth.md](docs/auth.md) for details.
+
+**Serving on a public host**: put HTTPS in front of the app (Caddy, Traefik, nginx). Over plain
+HTTP the token travels in cleartext.
 
 ## API
 
@@ -68,6 +102,8 @@ All endpoints prefixed with `/api`, except `/exec`.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| `POST` | `/api/login` | Exchange a token for confirmation (public, rate limited) |
+| `GET` | `/api/session` | `{ authenticated, required }` for the SPA login gate (public) |
 | `GET` | `/api/tree` | Full directory/file tree |
 | `GET` | `/api/note?path=...` | Note content and metadata |
 | `POST` | `/api/note` | Create or update a note |

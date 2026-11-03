@@ -1,9 +1,10 @@
 import type { TreeNode, Note, SearchResult } from './types';
+import { authFetch } from './auth';
 
 const BASE = '/api';
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${url}`, {
+  const res = await authFetch(`${BASE}${url}`, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   });
@@ -85,7 +86,7 @@ export async function uploadFiles(files: FileList | File[], dir: string = ''): P
     formData.append('files', file);
   }
   const params = dir ? `?dir=${encodeURIComponent(dir)}` : '';
-  const res = await fetch(`/api/upload${params}`, {
+  const res = await authFetch(`/api/upload${params}`, {
     method: 'POST',
     body: formData,
   });

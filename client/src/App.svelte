@@ -6,6 +6,8 @@
   import FileViewer from "./lib/FileViewer.svelte";
   import ThemeToggle from "./lib/ThemeToggle.svelte";
   import ActionPicker from "./lib/ActionPicker.svelte";
+  import Login from "./lib/Login.svelte";
+  import { AUTH_REQUIRED_EVENT, fetchSession } from "./lib/auth";
   import type { TreeNode, Note } from "./lib/types";
   import { loadActions, getActions, type Action } from "./lib/actions";
   import {
@@ -43,6 +45,8 @@
   let error = $state<string | null>(null);
   let actions = $state<Action[]>([]);
   let showActions = $state(false);
+  let authNeeded = $state(false);
+  let authMessage = $state("Enter the access token to unlock this server.");
 
   // ─── Swipe to open sidebar (mobile) ──────────────────────────────────────
 
@@ -83,29 +87,50 @@
     theme = loadSettings().theme;
     applyTheme(theme);
 
-    loadActions()
-      .then(() => {
-        actions = getActions();
-      })
-      .catch((e: unknown) => {
-        error = e instanceof Error ? e.message : String(e);
-      });
+    // Auth gate: if the server requires a token we don't have a valid one for,
+    // show the login modal and skip loading content until it succeeds.
+    const startContent = () => {
+      loadActions()
+        .then(() => {
+          actions = getActions();
+        })
+        .catch((e: unknown) => {
+          error = e instanceof Error ? e.message : String(e);
+        });
 
-    const init = async () => {
-      await loadTree();
-      const urlPath = window.location.pathname.slice(1).replace(/\/$/, "");
-      if (urlPath) {
-        if (urlPath.startsWith("f/")) {
-          selectedFile = decodeURIComponent(urlPath.slice(2));
-        } else {
-          navigateToNoteFromPath(decodeURIComponent(urlPath));
+      const init = async () => {
+        await loadTree();
+        const urlPath = window.location.pathname.slice(1).replace(/\/$/, "");
+        if (urlPath) {
+          if (urlPath.startsWith("f/")) {
+            selectedFile = decodeURIComponent(urlPath.slice(2));
+          } else {
+            navigateToNoteFromPath(decodeURIComponent(urlPath));
+          }
         }
-      }
+      };
+      init();
     };
-    init();
+
+    fetchSession().then((session) => {
+      if (session.required && !session.authenticated) {
+        authNeeded = true;
+      } else {
+        startContent();
+      }
+    });
+
+    const onAuthRequired = () => {
+      authMessage = "Your session expired. Enter the access token again.";
+      authNeeded = true;
+    };
+    window.addEventListener(AUTH_REQUIRED_EVENT, onAuthRequired);
 
     window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
+    return () => {
+      window.removeEventListener("popstate", onPopState);
+      window.removeEventListener(AUTH_REQUIRED_EVENT, onAuthRequired);
+    };
   });
 
   // ─── Theme ──────────────────────────────────────────────────────────────
@@ -575,6 +600,18 @@
       {actions}
       onClose={() => (showActions = false)}
       onPick={handleRunAction}
+    />
+  {/if}
+
+  <!-- Login overlay (token auth) -->
+  {#if authNeeded}
+    <Login
+      message={authMessage}
+      ondone={() => {
+        authNeeded = false;
+        error = null;
+        window.location.reload();
+      }}
     />
   {/if}
 

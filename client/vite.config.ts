@@ -11,6 +11,10 @@ export default defineConfig({
         target: 'http://localhost:3000',
         changeOrigin: true,
       },
+      '/exec': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
       '/f': {
         target: 'http://localhost:3000',
         changeOrigin: true,

@@ -6,6 +6,7 @@ import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { exec as execCb } from 'child_process';
 import { promisify } from 'util';
+import { timingSafeEqual } from 'crypto';
 
 const exec = promisify(execCb);
 
@@ -15,10 +16,120 @@ const NOTES_DIR = process.env.NOTES
   : path.resolve(__dirname, '../../notes');
 const CLIENT_DIST = path.resolve(__dirname, '../../client/dist');
 
+// ─── Auth configuration ─────────────────────────────────────────────────────
+
+/**
+ * Single-user bearer-token auth. When AUTH_TOKEN is unset or empty, auth is
+ * disabled entirely (development default).
+ */
+const AUTH_TOKEN = (process.env.AUTH_TOKEN ?? '').trim();
+const AUTH_ENABLED = AUTH_TOKEN.length > 0;
+
 const app = express();
+
+// Behind a reverse proxy (Caddy/Traefik) this makes req.ip meaningful for the
+// login rate limiter.
+if (process.env.TRUST_PROXY) {
+  app.set('trust proxy', 1);
+}
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+
+/** Constant-time string comparison that does not leak length via early exit. */
+function safeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a, 'utf8');
+  const bb = Buffer.from(b, 'utf8');
+  if (ab.length !== bb.length) {
+    // Still do a comparison so timing does not depend on a prefix match.
+    timingSafeEqual(ab, ab);
+    return false;
+  }
+  return timingSafeEqual(ab, bb);
+}
+
+/** Extract a bearer token from the Authorization or X-Auth-Token headers. */
+function requestToken(req: express.Request): string {
+  const header = req.get('authorization');
+  if (header && header.toLowerCase().startsWith('bearer ')) {
+    return header.slice(7).trim();
+  }
+  return (req.get('x-auth-token') ?? '').trim();
+}
+
+function isAuthorized(req: express.Request): boolean {
+  if (!AUTH_ENABLED) return true;
+  const token = requestToken(req);
+  return token.length > 0 && safeEqual(token, AUTH_TOKEN);
+}
+
+/** Express middleware rejecting unauthenticated requests with 401. */
+function authGuard(
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction,
+) {
+  if (isAuthorized(req)) return next();
+  res.status(401).json({ error: 'unauthorized' });
+}
+
+// Naive in-memory brute-force limiter for /api/login.
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_MAX_ATTEMPTS = 10;
+const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+
+function loginRateLimited(req: express.Request): boolean {
+  const key = req.ip ?? 'unknown';
+  const now = Date.now();
+  const entry = loginAttempts.get(key);
+  if (!entry || entry.resetAt <= now) return false;
+  return entry.count >= LOGIN_MAX_ATTEMPTS;
+}
+
+function recordLoginFailure(req: express.Request): void {
+  const key = req.ip ?? 'unknown';
+  const now = Date.now();
+  const entry = loginAttempts.get(key);
+  if (!entry || entry.resetAt <= now) {
+    loginAttempts.set(key, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
+  } else {
+    entry.count += 1;
+  }
+}
+
+// ─── API: Auth ──────────────────────────────────────────────────────────────
+
+/** Public: exchange a token for confirmation. No session state is created. */
+app.post('/api/login', (req, res) => {
+  if (!AUTH_ENABLED) {
+    return res.json({ ok: true, required: false });
+  }
+  if (loginRateLimited(req)) {
+    return res
+      .status(429)
+      .json({ error: 'too many attempts, try again later' });
+  }
+  const { token } = req.body ?? {};
+  if (typeof token !== 'string' || !token.trim()) {
+    return res.status(400).json({ error: 'token string required' });
+  }
+  if (safeEqual(token.trim(), AUTH_TOKEN)) {
+    return res.json({ ok: true, required: true });
+  }
+  recordLoginFailure(req);
+  res.status(401).json({ error: 'invalid token' });
+});
+
+/** Public: lets the SPA decide whether to show the login modal. */
+app.get('/api/session', (req, res) => {
+  res.json({
+    authenticated: isAuthorized(req),
+    required: AUTH_ENABLED,
+  });
+});
+
+// Guard every /api route registered after this line.
+app.use('/api', authGuard);
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -468,7 +579,7 @@ app.get('/api/search', (req, res) => {
 
 // ─── API: Exec ──────────────────────────────────────────────────────────────
 
-app.post('/exec', async (req, res) => {
+app.post('/exec', authGuard, async (req, res) => {
   try {
     const { command } = req.body;
     if (!command || typeof command !== 'string' || !command.trim()) {

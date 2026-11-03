@@ -7,6 +7,7 @@ CONTEXT_DIR="$(dirname "$SCRIPT_DIR")"
 IMAGE="${IMAGE:-downspace:latest}"
 NAME="${NAME:-downspace}"
 PORT="${PORT:-3000}"
+BIND="${BIND:-0.0.0.0}"
 NOTES_DIR="${NOTES_DIR:-$CONTEXT_DIR/notes}"
 
 if command -v podman >/dev/null 2>&1; then
@@ -25,9 +26,20 @@ fi
 
 mkdir -p "$NOTES_DIR"
 
+# Forward auth config when provided.
+ENV_ARGS=(-e NOTES=/app/notes)
+if [[ -n "${AUTH_TOKEN:-}" ]]; then
+  ENV_ARGS+=(-e "AUTH_TOKEN=$AUTH_TOKEN")
+else
+  echo "warning: AUTH_TOKEN not set — server will run without authentication" >&2
+fi
+if [[ -n "${TRUST_PROXY:-}" ]]; then
+  ENV_ARGS+=(-e TRUST_PROXY="$TRUST_PROXY")
+fi
+
 exec "$ENGINE" run --rm -it \
   --name "$NAME" \
-  -p "${PORT}:3000" \
+  -p "${BIND}:${PORT}:3000" \
   -v "$NOTES_DIR:/app/notes" \
-  -e NOTES=/app/notes \
+  "${ENV_ARGS[@]}" \
   "$IMAGE"
