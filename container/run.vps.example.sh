@@ -19,7 +19,7 @@ export AUTH_TOKEN="${AUTH_TOKEN:-abc123}"
 export TRUST_PROXY="${TRUST_PROXY:-1}"
 
 # Host port the proxy forwards to (container always listens on 3000).
-export PORT="${PORT:-3000}"
+export PORT="${PORT:-1113}"
 
 # Publish on loopback only: the reverse proxy runs on this same host and
 # connects locally, so the app port is never reachable from the internet.
